@@ -56,7 +56,7 @@
 	var/real_name = client.prefs.active_character.real_name
 	if(client.prefs.toggles2 & PREFTOGGLE_2_RANDOMSLOT)
 		real_name = "Random Character Slot"
-	var/output = "<center><p><a href='byond://?src=[UID()];show_preferences=1'>Setup Character</A><br /><i>[real_name]</i></p>"
+	var/output = "<center><p><a href='byond://?src=[UID()];show_preferences=1'>Setup Character</A><br /><a href='byond://?src=[UID()];show_new_preferences=1'>Setup Character - New</A><br /><i>[real_name]</i></p>"
 
 	if(SSticker.current_state <= GAME_STATE_PREGAME)
 		if(!ready)
@@ -132,6 +132,10 @@
 
 	if(href_list["show_preferences"])
 		client.prefs.ShowChoices(src)
+		return TRUE
+
+	if(href_list["show_new_preferences"])
+		client.prefs.ShowNewCharacterCreator(src)
 		return TRUE
 
 	if(href_list["ready"])

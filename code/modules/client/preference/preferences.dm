@@ -161,6 +161,13 @@ GLOBAL_LIST_INIT(special_role_times, list(
 /datum/preferences/proc/color_square(colour)
 	return "<span style='font-face: fixedsys; background-color: [colour]; color: [colour]'>___</span>"
 
+// New TGUI Character Creator
+/datum/preferences/proc/ShowNewCharacterCreator(mob/user)
+	if(!user || !user.client)
+		return
+	var/datum/character_creator/CC = new()
+	CC.ui_interact(user)
+
 // Hello I am a proc full of snowflake species checks how are you
 /datum/preferences/proc/ShowChoices(mob/user)
 	if(!user || !user.client)
