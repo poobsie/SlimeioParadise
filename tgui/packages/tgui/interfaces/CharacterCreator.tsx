@@ -882,7 +882,7 @@ const SpeciesSection = () => {
       <Stack
         fill
         style={{
-          height: '300px', // Fixed height to accommodate longest description
+          height: '300px',
         }}
       >
         {/* Species list on the left */}
@@ -917,7 +917,7 @@ const SpeciesSection = () => {
             <Stack
               fill
               style={{
-                justifyContent: 'center', // Vertically center content
+                justifyContent: 'center',
                 alignItems: 'center',
               }}
             >
@@ -2292,11 +2292,11 @@ const QuirksTab = (props) => {
   );
 };
 
+/*
 const AntagPreferencesTab = () => {
   const { act, data } = useBackend<CharacterData>();
   const { antag_preferences = {}, available_antags = [] } = data;
 
-  // Use backend data if available, otherwise fall back to default list
   const antagList =
     available_antags.length > 0
       ? available_antags
@@ -2352,6 +2352,7 @@ const AntagPreferencesTab = () => {
           },
         ];
 
+
   return (
     <Stack vertical fill>
       <Stack.Item>
@@ -2383,7 +2384,6 @@ const AntagPreferencesTab = () => {
                     }}
                   >
                     <Stack>
-                      {/* Preview image placeholder */}
                       <Stack.Item basis="80px">
                         <div
                           style={{
@@ -2406,7 +2406,6 @@ const AntagPreferencesTab = () => {
                           )}
                         </div>
                       </Stack.Item>
-                      {/* Antag info - takes most of the space */}
                       <Stack.Item grow ml={2}>
                         <Stack vertical>
                           <Stack.Item>
@@ -2453,6 +2452,7 @@ const AntagPreferencesTab = () => {
     </Stack>
   );
 };
+  */
 
 const BackgroundTab = (props) => {
   const { act, data } = useBackend<CharacterData>();
