@@ -661,6 +661,7 @@
 
 	return available
 
+// Hair gradients don't ever really change, and we're not previewing them for now.
 /datum/character_creator/proc/get_available_hair_gradients()
 	var/list/available = list()
 	for(var/gradient_style in GLOB.hair_gradients_list)
@@ -684,7 +685,7 @@
 		if(character.body_type == FEMALE && U.body_type == MALE)
 			continue
 
-		// Generate individual sprite file using _s suffix like character preview
+		// Generate individual sprite file using _s suffix
 		var/icon/underwear_icon = icon(U.icon, "uw_[U.icon_state]_s")
 		// Use stable resource name for caching
 		var/underwear_resource = "underwear_[U.icon_state].png"
@@ -714,7 +715,7 @@
 		if(character.body_type == FEMALE && U.body_type == MALE)
 			continue
 
-		// Generate individual sprite file using _s suffix like character preview
+		// Generate individual sprite file using _s suffix
 		var/icon/undershirt_icon = icon(U.icon, "us_[U.icon_state]_s")
 		// Use stable resource name for caching
 		var/undershirt_resource = "undershirt_[U.icon_state].png"
