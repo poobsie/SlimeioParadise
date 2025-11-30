@@ -31,6 +31,22 @@
 		if(character.preview_icon_side)
 			user << browse_rsc(character.preview_icon_side, "char_preview_side_[timestamp].png")
 
+	// Character selection data
+	var/list/character_list = list()
+	var/timestamp = world.time
+	for(var/i in 1 to length(user.client.prefs.character_saves))
+		var/datum/character_save/char_save = user.client.prefs.character_saves[i]
+		var/list/char_info = list()
+		char_info["slot"] = i
+		char_info["name"] = char_save.real_name || "Empty Slot"
+		char_info["species"] = char_save.species || "Human"
+		char_info["is_active"] = (char_save == user.client.prefs.active_character)
+		char_info["valid_save"] = char_save.valid_save
+		character_list += list(char_info)
+
+	data["character_saves"] = character_list
+	data["active_slot"] = character.slot_number
+
 	// Basic character info
 	data["real_name"] = character.real_name
 	data["age"] = character.age
@@ -38,6 +54,21 @@
 	data["gender"] = character.gender == MALE ? "Male" : (character.gender == FEMALE ? "Female" : "Genderless")
 	data["body_type"] = character.body_type == MALE ? "masculine" : "feminine"
 	data["flavor_text"] = character.flavor_text
+	data["physique"] = character.physique
+	data["height"] = character.height
+	data["runechat_color"] = character.runechat_color
+
+	// Character records
+	data["med_record"] = character.med_record
+	data["sec_record"] = character.sec_record
+	data["gen_record"] = character.gen_record
+
+	// Background settings
+	data["language"] = character.language
+	data["b_type"] = character.b_type
+	data["disabilities"] = character.disabilities
+	data["nanotrasen_relation"] = character.nanotrasen_relation
+	data["cyborg_brain_type"] = character.cyborg_brain_type
 
 	// Preview icons, with timestamps
 	data["has_preview"] = SSatoms.initialized
@@ -148,6 +179,144 @@
 		data["available_body_accessories"] = get_available_body_accessory_styles_with_icons(character)
 		data["body_accessory_style"] = character.body_accessory ? character.body_accessory : "None"
 
+	// Quirks
+	var/list/selected_quirks = list()
+	for(var/datum/quirk/quirk in character.quirks)
+		selected_quirks += quirk.name
+	data["selected_quirks"] = selected_quirks
+	data["quirk_balance"] = character.rebuild_quirks()
+
+	// Loadout
+	data["gear_slots"] = user?.client?.prefs.build_loadout()
+	data["selected_gears"] = character.loadout_gear
+	data["max_gear_slots"] = user?.client?.prefs?.max_gear_slots
+	data["user_tier"] = user?.client?.donator_level
+
+	/*
+	// Antag preferences
+	var/list/antag_prefs = list()
+	antag_prefs["changeling"] = ROLE_CHANGELING in user?.client?.prefs?.be_special ? TRUE : FALSE
+	antag_prefs["cultist"] = ROLE_CULTIST in user?.client?.prefs?.be_special ? TRUE : FALSE
+	antag_prefs["revolutionary"] = ROLE_REV in user?.client?.prefs?.be_special ? TRUE : FALSE
+	antag_prefs["traitor"] = ROLE_TRAITOR in user?.client?.prefs?.be_special ? TRUE : FALSE
+	antag_prefs["vampire"] = ROLE_VAMPIRE in user?.client?.prefs?.be_special ? TRUE : FALSE
+	antag_prefs["wizard"] = ROLE_WIZARD in user?.client?.prefs?.be_special ? TRUE : FALSE
+	antag_prefs["mindflayer"] = ROLE_MIND_FLAYER in user?.client?.prefs?.be_special ? TRUE : FALSE
+	data["antag_preferences"] = antag_prefs
+	*/
+
+	return data
+
+/datum/character_creator/ui_static_data(mob/user)
+	var/list/data = list()
+	data["all_quirks"] = GLOB.quirk_tgui_info
+	data["gears"] = GLOB.gear_tgui_info
+	data["available_physiques"] = GLOB.character_physiques
+	data["available_heights"] = GLOB.character_heights
+
+	// Languages
+	var/list/available_languages = list()
+	for(var/lang_name in GLOB.all_languages)
+		var/datum/language/lang = GLOB.all_languages[lang_name]
+		if(!(lang.flags & RESTRICTED))
+			available_languages += lang.name
+	data["available_languages"] = available_languages
+
+	// Blood types
+	data["available_blood_types"] = list("A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-")
+
+	// Disabilities for current species
+	if(user.client?.prefs?.active_character)
+		var/datum/character_save/character = user.client.prefs.active_character
+		var/datum/species/S = GLOB.all_species[character.species]
+		var/list/disability_list = list()
+		var/list/accent_list = list()
+		// Non-quirk disabilities
+		disability_list["dizzy"] = list("name" = "Dizziness", "flag" = DISABILITY_FLAG_DIZZY)
+		disability_list["paraplegic"] = list("name" = "Paraplegia", "flag" = DISABILITY_FLAG_PARAPLEGIC)
+		if(!(TRAIT_NOFAT in S.inherent_traits))
+			disability_list["fat"] = list("name" = "Obese", "flag" = DISABILITY_FLAG_FAT)
+		if(CAN_WINGDINGS in S.species_traits)
+			disability_list["wingdings"] = list("name" = "Speak in Wingdings", "flag" = DISABILITY_FLAG_WINGDINGS)
+		// Add accent "disabilities" as a separate category
+		accent_list["nervous"] = list("name" = "Stutter", "flag" = DISABILITY_FLAG_NERVOUS)
+		accent_list["swedish"] = list("name" = "Swedish accent", "flag" = DISABILITY_FLAG_SWEDISH)
+		accent_list["chav"] = list("name" = "Chav accent", "flag" = DISABILITY_FLAG_CHAV)
+		accent_list["lisp"] = list("name" = "Lisp", "flag" = DISABILITY_FLAG_LISP)
+		data["available_disabilities"] = disability_list
+		data["available_accents"] = accent_list
+	else
+		data["available_disabilities"] = list()
+		data["available_accents"] = list()
+
+	// Nanotrasen relations
+	data["available_nanotrasen_relations"] = list("Loyal", "Supportive", "Neutral", "Skeptical", "Opposed")
+
+	// Cyborg brain types
+	var/list/available_brain_types
+	if(GLOB.borg_brain_choices)
+		for(var/brain_type in GLOB.borg_brain_choices)
+			available_brain_types |= brain_type
+	data["available_cyborg_brain_types"] = available_brain_types
+
+	// Species information with descriptions
+	var/list/species_info = list()
+	for(var/species_name in get_available_species(user))
+		var/datum/species/S = GLOB.all_species[species_name]
+		species_info[species_name] = list(
+			"name" = S.name,
+			"description" = S.blurb || "No description available.",
+		)
+	data["species_info"] = species_info
+
+	/*
+	// Antag information with icons
+	var/list/antag_info = list()
+	antag_info += list(list(
+		"name" = "Traitor",
+		"key" = "traitor",
+		"description" = "A Syndicate agent sent to complete objectives. Gets an Uplink which allows them to purchase gear and weapons for their mission.",
+		"icon" = "data:image/png;base64,[icon2base64(icon('icons/obj/card.dmi', "emag", SOUTH, 1))]"
+	))
+	antag_info += list(list(
+		"name" = "Vampire",
+		"key" = "vampire",
+		"description" = "A bloodsucker with supernatural powers. Feeds on the blood of the crew to grow in strength and gain new abilities.",
+		"icon" = "data:image/png;base64,[icon2base64(icon('icons/obj/closet.dmi', "coffin", SOUTH, 1))]"
+	))
+	antag_info += list(list(
+		"name" = "Mindflayer",
+		"key" = "mindflayer",
+		"description" = "An IPC host to a nanite swarm. Drains the mental energy of the crew to grow in strength and gain new abilities.",
+		"icon" = "data:image/png;base64,[icon2base64(icon('icons/obj/weapons/baton.dmi', "swarmprod", SOUTH, 1))]"
+	))
+	antag_info += list(list(
+		"name" = "Changeling",
+		"key" = "changeling",
+		"description" = "A powerful, parasitic alien that has replaced your character. Can shapeshift to mimic other crew members.",
+		"icon" = "data:image/png;base64,[icon2base64(icon('icons/obj/weapons/melee.dmi', "arm_blade", SOUTH, 1))]"
+	))
+	antag_info += list(list(
+		"name" = "Cultist",
+		"key" = "cultist",
+		"description" = "A founding member of a blood cult onstation seeking to summon their god. Works with other cultists to perform rituals and convert the crew.",
+		"icon" = "data:image/png;base64,[icon2base64(icon('icons/obj/cult.dmi', "blood_dagger", SOUTH, 1))]"
+	))
+	antag_info += list(list(
+		"name" = "Wizard",
+		"key" = "wizard",
+		"description" = "A devastatingly powerful spellcaster. Their goal is to cause as much chaos onstation as possible. Hunted by the entire crew.",
+		"icon" = "data:image/png;base64,[icon2base64(icon('icons/obj/clothing/hats.dmi', "wizard", SOUTH, 1))]"
+	))
+	antag_info += list(list(
+		"name" = "Revolutionary",
+		"key" = "revolutionary",
+		"description" = "A crew member seeking to overthrow station command. Converts other crew to the revolutionary cause through ideology or force. This antag can only roll with admin intervention.",
+		"icon" = "data:image/png;base64,[icon2base64(icon('icons/obj/device.dmi', "flash", SOUTH, 1))]"
+	))
+	data["available_antags"] = antag_info
+	*/
+
 	return data
 
 /datum/character_creator/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
@@ -163,6 +332,15 @@
 	// There are lots of things we can do in the character creator. This switch divvies them out.
 	// Todo - who belongs to helper functions?
 	switch(action)
+		// Switch to a different character save slot
+		if("switch_character")
+			var/slot_num = text2num(params["slot"])
+			if(slot_num && slot_num >= 1 && slot_num <= length(user.client.prefs.character_saves))
+				user.client.prefs.active_character = user.client.prefs.character_saves[slot_num]
+				user.client.prefs.default_slot = slot_num
+				// Refresh the entire UI with the new character's data
+				return TRUE
+
 		// Set a new name - sanitize input
 		if("set_name")
 			var/new_name = reject_bad_name(params["name"], TRUE)
@@ -265,9 +443,91 @@
 				character.body_type = new_body_type == "masculine" ? MALE : FEMALE
 			return refresh_preview(user)
 
+		// Set character physique
+		if("set_physique")
+			var/new_physique = params["physique"]
+			if(new_physique in GLOB.character_physiques)
+				character.physique = new_physique
+			return refresh_preview(user)
+
+		// Set character height
+		if("set_height")
+			var/new_height = params["height"]
+			if(new_height in GLOB.character_heights)
+				character.height = new_height
+			return refresh_preview(user)
+
+		// Set runechat color
+		if("set_runechat_color")
+			var/new_color = tgui_input_color(user, "Choose runechat color", "Runechat Color", character.runechat_color)
+			if(new_color)
+				character.runechat_color = new_color
+			return TRUE
+
 		// Set character flavor text
 		if("set_flavor_text")
 			character.flavor_text = params["flavor_text"]
+			return TRUE
+
+		// Set character flavor text with dialog
+		if("set_flavor_text_dialog")
+			var/new_flavor = tgui_input_text(user, "Set your character description here.", "Character Description", character.flavor_text, max_length = MAX_PAPER_MESSAGE_LEN, multiline = TRUE)
+			if(!isnull(new_flavor))
+				character.flavor_text = new_flavor
+			return TRUE
+
+		// Clear text actions
+		if("clear_flavor_text")
+			character.flavor_text = ""
+			return TRUE
+		if("clear_medical_record")
+			character.med_record = ""
+			return TRUE
+		if("clear_security_record")
+			character.sec_record = ""
+			return TRUE
+		if("clear_employment_record")
+			character.gen_record = ""
+			return TRUE
+
+		// Character records
+		if("set_medical_record")
+			var/new_record = tgui_input_text(user, "Set your medical notes here.", "Medical Records", character.med_record, max_length = MAX_PAPER_MESSAGE_LEN, multiline = TRUE)
+			if(!isnull(new_record))
+				character.med_record = new_record
+			return TRUE
+		if("set_security_record")
+			var/new_record = tgui_input_text(user, "Set your security notes here.", "Security Records", character.sec_record, max_length = MAX_PAPER_MESSAGE_LEN, multiline = TRUE)
+			if(!isnull(new_record))
+				character.sec_record = new_record
+			return TRUE
+		if("set_employment_record")
+			var/new_record = tgui_input_text(user, "Set your employment notes here.", "Employment Records", character.gen_record, max_length = MAX_PAPER_MESSAGE_LEN, multiline = TRUE)
+			if(!isnull(new_record))
+				character.gen_record = new_record
+			return TRUE
+
+		// Background settings
+		if("set_language")
+			var/new_language = params["language"]
+			character.language = new_language
+			return TRUE
+		if("set_blood_type")
+			var/new_blood_type = params["blood_type"]
+			character.b_type = new_blood_type
+			return TRUE
+		if("set_nanotrasen_relation")
+			var/new_relation = params["relation"]
+			character.nanotrasen_relation = new_relation
+			return TRUE
+		if("set_cyborg_brain_type")
+			var/new_brain_type = params["brain_type"]
+			character.cyborg_brain_type = new_brain_type
+			return TRUE
+		if("toggle_disability")
+			var/disability_flag = text2num(params["disability"])
+			if(disability_flag)
+				character.disabilities ^= disability_flag
 			return TRUE
 
 		// Set character hair style
@@ -493,6 +753,35 @@
 			character.randomise()
 			return refresh_preview(user)
 
+		/*
+		// Toggle antag preferences
+		if("toggle_antag_preference")
+			var/antag_type = params["antag_type"]
+			var/role_to_toggle
+			switch(antag_type)
+				if("changeling")
+					role_to_toggle = ROLE_CHANGELING
+				if("cultist")
+					role_to_toggle = ROLE_CULTIST
+				if("revolutionary")
+					role_to_toggle = ROLE_REV
+				if("traitor")
+					role_to_toggle = ROLE_TRAITOR
+				if("vampire")
+					role_to_toggle = ROLE_VAMPIRE
+				if("wizard")
+					role_to_toggle = ROLE_WIZARD
+				if("mindflayer")
+					role_to_toggle = ROLE_MIND_FLAYER
+			if(role_to_toggle)
+				if(role_to_toggle in user.client.prefs.be_special)
+					user.client.prefs.be_special -= role_to_toggle
+				else
+					user.client.prefs.be_special += role_to_toggle
+				user.client.prefs.save_preferences(user.client)
+			return TRUE
+		*/
+
 		// Save character
 		if("save")
 			user.client.prefs.save_preferences(user.client)
@@ -503,6 +792,46 @@
 		// And close.
 		if("close")
 			ui.close()
+			return TRUE
+
+		// Quirk actions
+		if("add_quirk")
+			var/quirk_path = text2path(params["path"])
+			var/datum/quirk/quirk = new quirk_path
+			user.add_quirk_to_save(quirk)
+			return TRUE
+
+		if("remove_quirk")
+			var/quirk_path = text2path(params["path"])
+			var/datum/quirk/quirk = new quirk_path
+			user.remove_quirk_from_save(quirk)
+			return TRUE
+
+		// Loadout actions
+		if("toggle_gear")
+			var/datum/gear/gear = GLOB.gear_datums[text2path(params["gear"])]
+			if(gear && ("[gear]" in character.loadout_gear))
+				character.loadout_gear -= "[gear]"
+				return TRUE
+
+			if(gear.donator_tier && user.client.donator_level < gear.donator_tier)
+				to_chat(user, "<span class='warning'>That gear is only available at a higher donation tier than you are on.</span>")
+				return FALSE
+
+			user.client.prefs.build_loadout(gear)
+			return TRUE
+
+		if("set_tweak")
+			if(!(params["gear"] in character.loadout_gear))
+				return FALSE
+
+			var/datum/gear/gear = GLOB.gear_datums[text2path(params["gear"])]
+			var/datum/gear_tweak/tweak = locate(text2path(params["tweak"])) in gear.gear_tweaks
+			character.set_tweak_metadata(gear, tweak, tweak.get_metadata(user, character.get_tweak_metadata(gear, tweak)))
+			return TRUE
+
+		if("clear_loadout")
+			character.loadout_gear.Cut()
 			return TRUE
 
 	return FALSE
