@@ -752,6 +752,12 @@
 	icon_state = "janitor"
 	access = list(ACCESS_HYDROPONICS, ACCESS_BAR, ACCESS_KITCHEN, ACCESS_MORGUE)
 
+/obj/item/card/id/stylist
+	name = "Stylist ID"
+	registered_name = "Stylist"
+	icon_state = "assistant"
+	access = list(ACCESS_MAINT_TUNNELS)
+
 /obj/item/card/id/explorer
 	name = "Explorer ID"
 	registered_name = "Explorer"

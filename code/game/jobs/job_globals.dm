@@ -66,7 +66,8 @@ GLOBAL_LIST_INIT(service_positions, list(
 	"Internal Affairs Agent",
 	"Chaplain",
 	"Clown",
-	"Mime"
+	"Mime",
+	"Stylist"
 ))
 
 GLOBAL_LIST_INIT(supply_positions, list(

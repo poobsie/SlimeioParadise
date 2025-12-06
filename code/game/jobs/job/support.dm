@@ -628,3 +628,32 @@
 		if(new_language.flags & (HIVEMIND|NOLIBRARIAN))
 			continue
 		H.add_language(la)
+
+/datum/job/stylist
+	title = "Stylist"
+	flag = JOB_STYLIST
+	department_flag = JOBCAT_SUPPORT
+	total_positions = 1
+	spawn_positions = 1
+	job_department_flags = DEP_FLAG_SERVICE
+	supervisors = "the head of personnel"
+	department_head = list("Head of Personnel")
+	selection_color = "#dddddd"
+	access = list(ACCESS_MAINT_TUNNELS)
+	alt_titles = list("Barber", "Tailor")
+	outfit = /datum/outfit/job/stylist
+	standard_paycheck = CREW_PAY_LOW
+
+/datum/outfit/job/stylist
+	name = "Stylist"
+	jobtype = /datum/job/stylist
+
+	uniform = /obj/item/clothing/under/rank/civilian
+	belt = /obj/item/storage/belt
+	l_ear = /obj/item/radio/headset/headset_service
+	id = /obj/item/card/id/stylist
+	pda = /obj/item/pda/stylist
+	backpack_contents = list(
+		/obj/item/scissors/barber = 1,
+		/obj/item/comb = 1
+	)

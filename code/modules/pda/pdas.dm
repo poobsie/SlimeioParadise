@@ -29,6 +29,11 @@
 	icon_state = "pda-janitor"
 	ttone = "slip"
 
+/obj/item/pda/stylist
+	default_cartridge = /obj/item/cartridge
+	icon_state = "pda-library"
+	ttone = "beep"
+
 /obj/item/pda/toxins
 	default_cartridge = /obj/item/cartridge/signal/toxins
 	icon_state = "pda-science"
