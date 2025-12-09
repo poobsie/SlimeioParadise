@@ -33,10 +33,14 @@
 	if(GLOB.configuration.gamemode.prevent_mindshield_antags)
 		restricted_jobs |= protected_jobs
 
+	// Create weighted list for ticket-based selection
+	var/list/weighted_revolutionaries = create_antag_ticket_weighted_list(possible_revolutionaries)
+
 	for(var/i in 1 to REVOLUTION_MAX_HEADREVS)
-		if(!length(possible_revolutionaries))
+		if(!length(weighted_revolutionaries))
 			break
-		var/datum/mind/new_headrev = pick_n_take(possible_revolutionaries)
+		var/datum/mind/new_headrev = pick(weighted_revolutionaries)
+		weighted_revolutionaries -= new_headrev
 		pre_revolutionaries |= new_headrev
 		new_headrev.restricted_roles = restricted_jobs
 		new_headrev.special_role = SPECIAL_ROLE_HEAD_REV
@@ -56,6 +60,11 @@
 			break
 		var/datum/mind/new_headrev = pick_n_take(pre_revolutionaries)
 		new_headrev.add_antag_datum(/datum/antagonist/rev/head)
+
+		// Handle antag tickets: player got selected, reduce tickets and reset rounds counter
+		var/client/antag_client = GLOB.directory[ckey(new_headrev.key)]
+		if(antag_client)
+			handle_antag_selection(antag_client)
 
 	..()
 

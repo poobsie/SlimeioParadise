@@ -18,10 +18,14 @@
 	if(!length(possible_changelings))
 		return ..()
 
-	for(var/I in possible_changelings)
+	// Create weighted list for ticket-based selection
+	var/list/weighted_changelings = create_antag_ticket_weighted_list(possible_changelings)
+
+	for(var/I in weighted_changelings)
 		if(length(pre_changelings) >= secondary_enemies)
 			break
-		var/datum/mind/changeling = pick_n_take(possible_changelings)
+		var/datum/mind/changeling = pick(weighted_changelings)
+		weighted_changelings -= changeling
 		changeling.restricted_roles = (restricted_jobs + secondary_restricted_jobs)
 		if(changeling.current?.client?.prefs.active_character.species in species_to_mindflayer)
 			pre_mindflayers += changeling

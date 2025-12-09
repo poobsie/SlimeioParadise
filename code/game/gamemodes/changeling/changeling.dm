@@ -31,10 +31,14 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 
 	changeling_amount = 1 + round(num_players() / 10)
 
+	// Create weighted list for ticket-based selection
+	var/list/weighted_changelings = create_antag_ticket_weighted_list(possible_changelings)
+
 	for(var/i in 1 to changeling_amount)
-		if(!length(possible_changelings))
+		if(!length(weighted_changelings))
 			break
-		var/datum/mind/changeling = pick_n_take(possible_changelings)
+		var/datum/mind/changeling = pick(weighted_changelings)
+		weighted_changelings -= changeling
 		changeling.restricted_roles = restricted_jobs
 		if(changeling.current?.client?.prefs.active_character.species in species_to_mindflayer)
 			pre_mindflayers += changeling
@@ -52,6 +56,12 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 	for(var/datum/mind/changeling as anything in pre_changelings)
 		changeling.add_antag_datum(/datum/antagonist/changeling)
 		pre_changelings -= changeling
+
+		// Handle antag tickets: player got selected, reduce tickets and reset rounds counter
+		var/client/antag_client = GLOB.directory[ckey(changeling.key)]
+		if(antag_client)
+			handle_antag_selection(antag_client)
+
 	..()
 
 /datum/game_mode/proc/auto_declare_completion_changeling()

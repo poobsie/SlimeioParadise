@@ -10,6 +10,8 @@ GLOBAL_DATUM_INIT(configuration, /datum/server_configuration, new())
 	var/datum/configuration_section/admin_configuration/admin
 	/// Holder for the AFK configuration datum
 	var/datum/configuration_section/afk_configuration/afk
+	/// Holder for the antag tickets configuration datum
+	var/datum/configuration_section/antag_tickets_configuration/antag_tickets
 	/// Holder for the custom sprites configuration datum
 	var/datum/configuration_section/custom_sprites_configuration/custom_sprites
 	/// Holder for the DB configuration datum
@@ -80,6 +82,7 @@ GLOBAL_DATUM_INIT(configuration, /datum/server_configuration, new())
 	// Initialize all our holders
 	admin = new()
 	afk = new()
+	antag_tickets = new()
 	custom_sprites = new()
 	database = new()
 	discord = new()

@@ -33,7 +33,9 @@
 		muted_adminsounds_ckeys,
 		viewrange,
 		map_vote_pref_json,
-		toggles_3
+		toggles_3,
+		antag_tickets,
+		rounds_since_antag
 		FROM player
 		WHERE ckey=:ckey"}, list(
 			"ckey" = C.ckey

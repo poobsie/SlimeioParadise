@@ -150,6 +150,11 @@
 	for(var/datum/mind/flayer as anything in pre_mindflayers) //Mindflayers need to be all the way out here since they could come from most gamemodes
 		flayer.make_mind_flayer()
 
+		// Handle antag tickets: player got selected, reduce tickets and reset rounds counter
+		var/client/antag_client = GLOB.directory[ckey(flayer.key)]
+		if(antag_client)
+			handle_antag_selection(antag_client)
+
 	return TRUE
 
 ///process()

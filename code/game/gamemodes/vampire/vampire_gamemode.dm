@@ -24,10 +24,14 @@
 	var/vampire_amount = 1 + (round(num_players() / 10) * (1 - vampire_penalty))
 
 	if(length(possible_vampires))
+		// Create weighted list for ticket-based selection
+		var/list/weighted_vampires = create_antag_ticket_weighted_list(possible_vampires)
+
 		for(var/i in 1 to vampire_amount)
-			if(!length(possible_vampires))
+			if(!length(weighted_vampires))
 				break
-			var/datum/mind/vampire = pick_n_take(possible_vampires)
+			var/datum/mind/vampire = pick(weighted_vampires)
+			weighted_vampires -= vampire
 			vampire.restricted_roles = (restricted_jobs + secondary_restricted_jobs)
 			if(vampire.current?.client?.prefs.active_character.species in species_to_mindflayer)
 				pre_mindflayers += vampire
@@ -36,14 +40,18 @@
 			pre_vampires += vampire
 			vampire.special_role = SPECIAL_ROLE_VAMPIRE
 
-		..()
-		return TRUE
+		return ..()
 	else
 		return FALSE
 
 /datum/game_mode/vampire/post_setup()
 	for(var/datum/mind/vampire in pre_vampires)
 		vampire.add_antag_datum(/datum/antagonist/vampire)
+
+		// Handle antag tickets: player got selected, reduce tickets and reset rounds counter
+		var/client/antag_client = GLOB.directory[ckey(vampire.key)]
+		if(antag_client)
+			handle_antag_selection(antag_client)
 	..()
 
 /datum/game_mode/proc/auto_declare_completion_vampire()

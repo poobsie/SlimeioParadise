@@ -102,6 +102,10 @@
 		else
 			status_tab_data[++status_tab_data.len] = list("Game Mode:", "Secret")
 
+	// Add antag ticket information if system is enabled and during pregame
+	if(SSticker?.current_state == GAME_STATE_PREGAME && GLOB.configuration.antag_tickets.enable_antag_tickets)
+		add_antag_ticket_status(status_tab_data)
+
 /mob/new_player/Topic(href, href_list[])
 	if(!client)
 		return FALSE
@@ -255,6 +259,45 @@
 			client.prefs.process_link(src, href_list)
 	else if(!href_list["late_join"])
 		new_player_panel()
+
+/mob/new_player/proc/add_antag_ticket_status(list/status_tab_data)
+	var/config = GLOB.configuration.antag_tickets.display_config
+
+	// Show readied players count if enabled
+	if(config & ANTAG_TICKETS_SHOW_READIED_PLAYERS)
+		var/ready_count = 0
+		for(var/mob/new_player/player in GLOB.player_list)
+			if(player.ready && player.client)
+				ready_count++
+		status_tab_data[++status_tab_data.len] = list("Ready Players:", "[ready_count]")
+
+	// Show user's antag ticket information if they have a client
+	if(client)
+		// Show rounds since last antag if enabled
+		if(config & ANTAG_TICKETS_SHOW_ROUNDS_SINCE_ANTAG)
+			status_tab_data[++status_tab_data.len] = list("Rounds Since Antag:", "[client.prefs.rounds_since_antag]")
+
+		// Show current ticket count if enabled
+		if(config & ANTAG_TICKETS_SHOW_TICKET_COUNT)
+			status_tab_data[++status_tab_data.len] = list("Antag Tickets:", "[client.prefs.antag_tickets]")
+
+		// Show precise odds if enabled
+		if(config & ANTAG_TICKETS_SHOW_PRECISE_ODDS)
+			// Calculate this player's odds relative to other ready players
+			var/our_tickets = client.prefs.antag_tickets
+			var/total_tickets = 0
+			var/ready_count = 0
+
+			for(var/mob/new_player/other_player in GLOB.player_list)
+				if(other_player.ready && other_player.client && !other_player.client.persistent.skip_antag)
+					ready_count++
+					total_tickets += other_player.client.prefs.antag_tickets
+
+			if(total_tickets > 0 && ready_count > 0)
+				var/odds_percentage = round((our_tickets / total_tickets) * 100, 0.1)
+				status_tab_data[++status_tab_data.len] = list("Antag Selection Odds:", "[odds_percentage]%")
+			else
+				status_tab_data[++status_tab_data.len] = list("Antag Selection Odds:", "N/A")
 
 /mob/new_player/proc/IsJobAvailable(rank)
 	var/datum/job/job = SSjobs.GetJob(rank)

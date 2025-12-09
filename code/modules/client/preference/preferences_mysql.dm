@@ -35,6 +35,8 @@
 		viewrange = query.item[27]
 		raw_fptp = query.item[28]
 		toggles3 = text2num(query.item[29])
+		antag_tickets = text2num(query.item[30]) || DEFAULT_ANTAG_TICKETS
+		rounds_since_antag = text2num(query.item[31]) || 0
 
 	lastchangelog_2 = lastchangelog // Clone please
 
@@ -114,7 +116,9 @@
 		server_region=:server_region,
 		muted_adminsounds_ckeys=:muted_adminsounds_ckeys,
 		viewrange=:viewrange,
-		map_vote_pref_json=:map_vote_pref_json
+		map_vote_pref_json=:map_vote_pref_json,
+		antag_tickets=:antag_tickets,
+		rounds_since_antag=:rounds_since_antag
 		WHERE ckey=:ckey"}, list(
 			// OH GOD THE PARAMETERS
 			"ooccolour" = ooccolor,
@@ -145,7 +149,9 @@
 			"server_region" = server_region,
 			"muted_adminsounds_ckeys" = json_encode(admin_sound_ckey_ignore),
 			"viewrange" = viewrange,
-			"map_vote_pref_json" = json_encode(map_vote_pref_json)
+			"map_vote_pref_json" = json_encode(map_vote_pref_json),
+			"antag_tickets" = antag_tickets,
+			"rounds_since_antag" = rounds_since_antag
 		))
 
 	if(!query.warn_execute())

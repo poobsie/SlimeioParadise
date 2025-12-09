@@ -94,8 +94,10 @@
 	if(GLOB.configuration.gamemode.prevent_mindshield_antags)
 		banned_jobs += protected_jobs
 
-	shuffle_inplace(possible_antags)
-	for(var/datum/mind/antag as anything in possible_antags)
+	// Create weighted list based on antag tickets instead of random shuffle
+	var/list/weighted_antags = create_antag_ticket_weighted_list(possible_antags)
+
+	for(var/datum/mind/antag as anything in weighted_antags)
 		if(antag_amount <= 0)
 			break
 		if(!roundstart_can_apply(antag))
@@ -126,6 +128,11 @@
 	for(var/datum/mind/antag as anything in pre_antags)
 		antag.add_antag_datum(antagonist_type)
 		SSblackbox.record_feedback("nested tally", "dynamic_selections", 1, list("roundstart", "[antagonist_type]"))
+
+		// Handle antag tickets: player got selected, reset tickets to default and reset rounds counter
+		var/client/antag_client = GLOB.directory[ckey(antag.key)]
+		if(antag_client)
+			handle_antag_selection(antag_client)
 
 /datum/ruleset/proc/refund(info)
 	// not enough antagonists signed up!!! idk what to do. The only real solution is to procedurally allocate budget, which will result in 1000x more get_players_for_role() calls. Which is not cheap.
@@ -163,7 +170,7 @@
 
 		candidates += player.mind
 
-	return shuffle(candidates)
+	return create_antag_ticket_weighted_list(candidates)
 
 /datum/ruleset/proc/latespawn(datum/game_mode/dynamic/dynamic)
 	// latespawning is only used by traitors at this point, so we're just going to be naive and allocate all budget when this proc is called.
@@ -172,9 +179,17 @@
 
 	var/list/datum/mind/possible_antags = get_latejoin_players()
 	for(var/i in 1 to late_antag_amount)
-		var/datum/mind/antag = pick_n_take(possible_antags)
+		if(!length(possible_antags))
+			break
+		var/datum/mind/antag = pick(possible_antags)
+		possible_antags -= antag
 		antag.add_antag_datum(antagonist_type)
 		SSblackbox.record_feedback("nested tally", "dynamic_selections", 1, list("latespawn", "[antagonist_type]"))
+
+		// Handle antag tickets: player got selected, reset tickets to default and reset rounds counter
+		var/client/antag_client = GLOB.directory[ckey(antag.key)]
+		if(antag_client)
+			handle_antag_selection(antag_client)
 
 	log_dynamic("Latespawned [late_antag_amount] [name]\s.")
 	message_admins("Dynamic latespawned [late_antag_amount] [name]\s.")

@@ -571,6 +571,10 @@ SUBSYSTEM_DEF(ticker)
 	GLOB.nologevent = TRUE //end of round murder and shenanigans are legal; there's no need to jam up attack logs past this point.
 	GLOB.disable_explosions = TRUE // that said, if people want to be """FUNNY""" and bomb at EORG, they can fuck themselves up
 	set_observer_default_invisibility(0) //spooks things up
+
+	// Award antag tickets to players who participated but didn't get antag roles
+	award_round_participation_tickets()
+
 	//Round statistics report
 	var/datum/station_state/ending_station_state = new /datum/station_state()
 	ending_station_state.count()

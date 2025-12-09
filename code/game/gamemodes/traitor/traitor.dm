@@ -33,10 +33,14 @@
 
 	num_traitors = traitors_to_add()
 
+	// Create weighted list for ticket-based selection
+	var/list/weighted_traitors = create_antag_ticket_weighted_list(possible_traitors)
+
 	for(var/i in 1 to num_traitors)
-		if(!length(possible_traitors))
+		if(!length(weighted_traitors))
 			break
-		var/datum/mind/traitor = pick_n_take(possible_traitors)
+		var/datum/mind/traitor = pick(weighted_traitors)
+		weighted_traitors -= traitor
 		pre_traitors += traitor
 		traitor.special_role = SPECIAL_ROLE_TRAITOR
 		traitor.restricted_roles = restricted_jobs
@@ -59,6 +63,11 @@
 			traitor_datum.addtimer(CALLBACK(traitor_datum, TYPE_PROC_REF(/datum/antagonist/traitor, reveal_delayed_objectives)), random_time, TIMER_DELETE_ME)
 
 		traitor.add_antag_datum(traitor_datum)
+
+		// Handle antag tickets: player got selected, reduce tickets and reset rounds counter
+		var/client/antag_client = GLOB.directory[ckey(traitor.key)]
+		if(antag_client)
+			handle_antag_selection(antag_client)
 
 /datum/game_mode/traitor/traitors_to_add()
 	if(GLOB.configuration.gamemode.traitor_scaling)

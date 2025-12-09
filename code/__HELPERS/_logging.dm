@@ -199,6 +199,9 @@ GLOBAL_PROTECT(log_end)
 /proc/log_href(text)
 	rustlibs_log_write(GLOB.world_href_log, "HREF: [html_decode(text)][GLOB.log_end]")
 
+/proc/log_antag_tickets(text)
+	log_game("ANTAG_TICKETS: [text]")
+
 /proc/log_runtime_summary(text)
 	rustlibs_log_write(GLOB.runtime_summary_log, "[text][GLOB.log_end]")
 

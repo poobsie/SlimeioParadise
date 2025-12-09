@@ -60,6 +60,11 @@ RESTRICT_TYPE(/datum/team/abductor)
 	mind.add_antag_datum(antag)
 	antag.equip_abductor()
 
+	// Handle antag tickets: player got selected, reset tickets to default and reset rounds counter
+	var/client/antag_client = GLOB.directory[ckey(mind.key)]
+	if(antag_client)
+		handle_antag_selection(antag_client)
+
 	if(is_scientist)
 		scientist = mind
 	else

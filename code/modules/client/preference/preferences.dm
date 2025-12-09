@@ -136,6 +136,10 @@ GLOBAL_LIST_INIT(special_role_times, list(
 	var/viewrange = DEFAULT_CLIENT_VIEWSIZE
 	/// Map preferences for the first past the post system
 	var/list/map_vote_pref_json = list()
+	/// Current antag tickets (base is 10.0)
+	var/antag_tickets = DEFAULT_ANTAG_TICKETS
+	/// Rounds since last antag role
+	var/rounds_since_antag = 0
 
 /datum/preferences/New(client/C, datum/db_query/Q) // Process our query
 	parent = C

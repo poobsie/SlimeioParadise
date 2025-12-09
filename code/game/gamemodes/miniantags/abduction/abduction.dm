@@ -21,9 +21,14 @@
 
 	abductor_teams = clamp(min(round(num_players() / 15), round(length(possible_abductors) / 2)), 1, max_teams)
 
+	// Create weighted list for ticket-based selection
+	var/list/weighted_abductors = create_antag_ticket_weighted_list(possible_abductors)
+
 	for(var/i in 1 to abductor_teams)
-		var/datum/mind/mind_1 = pick_n_take(possible_abductors)
-		var/datum/mind/mind_2 = pick_n_take(possible_abductors)
+		var/datum/mind/mind_1 = pick(weighted_abductors)
+		weighted_abductors -= mind_1
+		var/datum/mind/mind_2 = pick(weighted_abductors)
+		weighted_abductors -= mind_2
 		if(!mind_1 || !mind_2)
 			break
 		new /datum/team/abductor(list(mind_1, mind_2))
