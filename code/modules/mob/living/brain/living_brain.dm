@@ -9,6 +9,7 @@
 /mob/living/brain/New()
 	..()
 	add_language("Galactic Common")
+	ADD_TRAIT(src, TRAIT_HANDS_BLOCKED, "brain_no_hands") // Brains shouldn't be able to interface with the things around them.
 
 /mob/living/brain/Destroy()
 	if(key)				//If there is a mob connected to this thing. Have to check key twice to avoid false death reporting.
