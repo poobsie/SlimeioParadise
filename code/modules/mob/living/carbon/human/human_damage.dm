@@ -233,7 +233,14 @@
 /mob/living/carbon/human/proc/get_damageable_organs()
 	var/list/obj/item/organ/external/parts = list()
 	for(var/obj/item/organ/external/O in bodyparts)
-		if(O.brute_dam + O.burn_dam < O.max_damage)
+		// Calculate effective max damage using the same logic as receive_damage()
+		var/max_limb_damage = O.max_damage
+		if(O.fragile)
+			max_limb_damage -= (HAS_TRAIT(src, TRAIT_IPC_JOINTS_MAG) ? O.max_damage * 0.25 : 0)
+		if(HAS_TRAIT(src, TRAIT_FRAIL))
+			max_limb_damage /= 2
+
+		if(O.brute_dam + O.burn_dam < max_limb_damage)
 			parts += O
 	return parts
 
@@ -305,6 +312,11 @@
 		burn	-= (picked.burn_dam - burn_was)
 
 		parts -= picked
+
+	// If no damageable organs, force the damage onto any remaining organs
+	if((brute > 0 || burn > 0) && length(bodyparts))
+		var/obj/item/organ/external/forced_target = pick(bodyparts)
+		update |= forced_target.receive_damage(brute, burn, sharp, used_weapon, list(), FALSE, FALSE, TRUE)
 
 	if(updating_health)
 		updatehealth("take overall damage")

@@ -198,7 +198,7 @@
 	. = ..()
 	update_hand_missing()
 
-/obj/item/organ/external/hand/receive_damage(brute, burn, sharp, used_weapon, list/forbidden_limbs, ignore_resists, updating_health)
+/obj/item/organ/external/hand/receive_damage(brute, burn, sharp, used_weapon, list/forbidden_limbs, ignore_resists, updating_health, bypass_max_damage)
 	. = ..()
 	update_hand_missing()
 
@@ -291,7 +291,7 @@
 	name = limb_name
 	..()
 
-/obj/item/organ/external/head/receive_damage(brute, burn, sharp, used_weapon = null, list/forbidden_limbs = list(), ignore_resists = FALSE, updating_health = TRUE)
+/obj/item/organ/external/head/receive_damage(brute, burn, sharp, used_weapon = null, list/forbidden_limbs = list(), ignore_resists = FALSE, updating_health = TRUE, bypass_max_damage = FALSE)
 	. = ..()
 	if(brute_dam + burn_dam > 50 && !(status & ORGAN_DISFIGURED))
 		disfigure()

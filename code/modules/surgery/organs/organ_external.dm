@@ -220,11 +220,11 @@
 			DAMAGE PROCS
 ****************************************************/
 
-/obj/item/organ/external/receive_damage(brute, burn, sharp, used_weapon = null, list/forbidden_limbs = list(), ignore_resists = FALSE, updating_health = TRUE)
+/obj/item/organ/external/receive_damage(brute, burn, sharp, used_weapon = null, list/forbidden_limbs = list(), ignore_resists = FALSE, updating_health = TRUE, bypass_max_damage = FALSE)
 	var/max_limb_damage = max_damage
-	if(owner && fragile)
+	if(owner && fragile && !bypass_max_damage)
 		max_limb_damage -= (HAS_TRAIT(owner, TRAIT_IPC_JOINTS_MAG) ? max_damage * 0.25 : 0)
-	if(owner && HAS_TRAIT(owner, TRAIT_FRAIL))
+	if(owner && HAS_TRAIT(owner, TRAIT_FRAIL) && !bypass_max_damage)
 		max_limb_damage /= 2
 	if(tough && !ignore_resists)
 		brute = max(0, brute - 5)
@@ -276,7 +276,7 @@
 		add_autopsy_data(null, brute + burn)
 
 	// Make sure we don't exceed the maximum damage a limb can take before dismembering
-	if((brute_dam + burn_dam + brute + burn) < max_limb_damage)
+	if(bypass_max_damage || (brute_dam + burn_dam + brute + burn) < max_limb_damage)
 		brute_dam += brute
 		burn_dam += burn
 	else
