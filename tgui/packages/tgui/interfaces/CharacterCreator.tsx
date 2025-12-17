@@ -1,3 +1,8 @@
+/**
+ * Main frontend interface for character creator
+ * Backend sibling: code/modules/client/preference/character_creator_tgui.dm
+ */
+
 import { useEffect, useState } from 'react';
 import * as React from 'react';
 import {
@@ -18,6 +23,10 @@ import { createSearch } from 'tgui-core/string';
 
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
+import { BasicInformation } from './CharacterCreator/basic_information';
+import { CharacterPreview } from './CharacterCreator/character_preview';
+import { CharacterSelection } from './CharacterCreator/character_selection';
+import { SpeciesSelection } from './CharacterCreator/species_selection';
 
 interface CharacterCreatorData {
   available_prosthetics?: { [key: string]: any[] };
@@ -108,11 +117,28 @@ type CharacterData = {
   // Character selection
   character_saves: CharacterSave[];
   active_slot: number;
-  /*
+  // Component data
+  basic_information?: {
+    real_name: string;
+    age: number;
+    gender: string;
+    available_genders: string[];
+  };
+  species_selection?: {
+    selected_species: string;
+    available_species: Record<
+      string,
+      {
+        name: string;
+        description: string;
+        flesh_color: string;
+        icon: string;
+      }
+    >;
+  };
   // Antag preferences
   antag_preferences?: Record<string, boolean>;
   available_antags?: AntagInfo[];
-  */
 };
 
 type HairStyle = {
@@ -194,11 +220,12 @@ enum Tab {
 
 enum AppearanceTab {
   General = 0,
-  Hair = 1,
-  FacialHair = 2,
-  Wings = 3,
-  Clothing = 4,
-  Prosthetics = 5,
+  Species = 1,
+  Hair = 2,
+  FacialHair = 3,
+  Wings = 4,
+  Clothing = 5,
+  Prosthetics = 6,
 }
 
 enum ClothingCategory {
@@ -223,84 +250,18 @@ enum ProstheticsCategory {
 
 // Character selector component for switching between character slots
 const CharacterSelector = (props) => {
-  const { act, data } = useBackend<CharacterData>();
+  const { data } = useBackend<CharacterData>();
   const { character_saves } = data;
-
-  if (!character_saves || character_saves.length === 0) {
-    return null;
-  }
 
   return (
     <Stack.Item>
       <div
         style={{
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-          padding: '8px',
-          maxWidth: '100%',
           borderBottom: '1px solid #666',
           marginBottom: '8px',
         }}
       >
-        {character_saves.map((character) => (
-          <div
-            key={character.slot}
-            onClick={() =>
-              act('switch_character', {
-                slot: character.slot,
-              })
-            }
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '8px',
-              border: character.is_active ? '2px solid #00ff00' : '1px solid #666',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: character.is_active ? 'rgba(0, 255, 0, 0.1)' : 'rgba(0, 0, 0, 0.2)',
-              minWidth: '80px',
-              opacity: character.valid_save ? 1 : 0.5,
-            }}
-          >
-            {/* Character headshot preview */}
-            <div
-              style={{
-                width: '64px',
-                height: '48px',
-                border: '1px solid #333',
-                borderRadius: '2px',
-                backgroundColor: '#111',
-                backgroundImage: character.valid_save ? `url("${character.preview_headshot}")` : 'none',
-                backgroundSize: '64px auto',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center top',
-                marginBottom: '4px',
-                overflow: 'hidden',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: character.valid_save ? 'transparent' : '#666',
-                fontSize: '10px',
-              }}
-            >
-              {!character.valid_save && `${character.slot}`}
-            </div>
-            {/* Character name */}
-            <div
-              style={{
-                fontSize: '11px',
-                textAlign: 'center',
-                wordBreak: 'break-word',
-                lineHeight: '1.2',
-                maxWidth: '76px',
-              }}
-            >
-              {character.valid_save && character.name !== 'Empty Slot' ? character.name : `Slot ${character.slot}`}
-            </div>
-          </div>
-        ))}
+        <CharacterSelection character_saves={character_saves} />
       </div>
     </Stack.Item>
   );
@@ -359,6 +320,9 @@ const AppearanceTabComponent = (props) => {
     available_physiques,
     available_heights,
     available_genders,
+    // Basic information data
+    basic_information,
+    species_selection,
     available_hair_styles,
     available_facial_hair_styles,
     available_hair_gradients,
@@ -395,6 +359,7 @@ const AppearanceTabComponent = (props) => {
     if (previousSpecies !== '' && previousSpecies !== species) {
       const isCurrentTabValid =
         selectedAppearanceTab === AppearanceTab.General ||
+        selectedAppearanceTab === AppearanceTab.Species ||
         (selectedAppearanceTab === AppearanceTab.Hair && species_has_hair) ||
         (selectedAppearanceTab === AppearanceTab.FacialHair && species_has_facial_hair) ||
         (selectedAppearanceTab === AppearanceTab.Wings && species_has_wings) ||
@@ -430,106 +395,35 @@ const AppearanceTabComponent = (props) => {
 
   return (
     <Stack fill vertical>
+      {/* Top row: Three column layout */}
       <Stack.Item>
-        <Section title="Basic Information">
-          <Stack>
-            <Stack.Item basis="33%">
-              <LabeledList>
-                <LabeledList.Item label="Name">
-                  <Stack>
-                    <Stack.Item grow>
-                      <Input
-                        fluid
-                        value={real_name}
-                        onChange={(value) =>
-                          act('set_name', {
-                            name: value,
-                          })
-                        }
-                      />
-                    </Stack.Item>
-                    <Stack.Item>
-                      <Button icon="dice" tooltip="Random Name" onClick={() => act('random_name')} />
-                    </Stack.Item>
-                  </Stack>
-                </LabeledList.Item>
-                <LabeledList.Item label="Age">
-                  <Input
-                    width="80px"
-                    value={age.toString()}
-                    onChange={(value) =>
-                      act('set_age', {
-                        age: parseInt(value) || 18,
-                      })
-                    }
-                  />
-                </LabeledList.Item>
-              </LabeledList>
-            </Stack.Item>
-            <Stack.Item basis="33%">
-              <LabeledList>
-                <LabeledList.Item label="Gender">
-                  <Stack>
-                    {available_genders.map((genderOption) => (
-                      <Stack.Item key={genderOption}>
-                        <Button
-                          selected={gender === genderOption}
-                          onClick={() =>
-                            act('set_gender', {
-                              gender: genderOption,
-                            })
-                          }
-                        >
-                          {genderOption}
-                        </Button>
-                      </Stack.Item>
-                    ))}
-                  </Stack>
-                </LabeledList.Item>
-              </LabeledList>
-            </Stack.Item>
-          </Stack>
-        </Section>
-      </Stack.Item>
-
-      {/* Character preview - front facing and side facing */}
-      <Stack.Item>
-        <Box height="140px" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {has_preview ? (
-            <Stack>
-              <Stack.Item grow />
-              <Stack.Item>
-                <img
-                  src={`char_preview_front_${preview_timestamp}.png`}
-                  style={{
-                    width: '128px',
-                    height: '128px',
-                    imageRendering: 'pixelated',
-                    marginRight: '8px',
-                  }}
-                  alt="Character Front View"
-                />
-              </Stack.Item>
-              <Stack.Item>
-                <img
-                  src={`char_preview_side_${preview_timestamp}.png`}
-                  style={{
-                    width: '128px',
-                    height: '128px',
-                    imageRendering: 'pixelated',
-                    marginLeft: '8px',
-                  }}
-                  alt="Character Side View"
-                />
-              </Stack.Item>
-              <Stack.Item grow />
-            </Stack>
-          ) : (
-            <Box textAlign="center" color="label" p={2}>
-              Preview will be available once the server finishes loading...
+        <Stack fill>
+          {/* Column 1: Character preview - front facing and side facing */}
+          <Stack.Item>
+            <CharacterPreview has_preview={has_preview} preview_timestamp={preview_timestamp} />
+          </Stack.Item>
+          {/* Column 2: Basic information */}
+          <Stack.Item basis="200px" ml={2}>
+            {basic_information && <BasicInformation data={basic_information} />}
+          </Stack.Item>
+          {/* Column 3: Available for future content */}
+          <Stack.Item grow ml={2}>
+            <Box
+              style={{
+                height: '140px',
+                border: '1px dashed #444',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#666',
+                fontStyle: 'italic',
+              }}
+            >
+              Available for additional content
             </Box>
-          )}
-        </Box>
+          </Stack.Item>
+        </Stack>
       </Stack.Item>
 
       {/* Main content section with tabs */}
@@ -561,6 +455,12 @@ const AppearanceTabComponent = (props) => {
               >
                 Job Preferences
               </Tabs.Tab>
+              <Tabs.Tab
+                selected={selectedMainTab === Tab.AntagPreferences}
+                onClick={() => setSelectedMainTab(Tab.AntagPreferences)}
+              >
+                Antag Preferences
+              </Tabs.Tab>
             </Tabs>
           </Stack.Item>
           <Stack.Item grow>
@@ -574,6 +474,12 @@ const AppearanceTabComponent = (props) => {
                         onClick={() => setSelectedAppearanceTab(AppearanceTab.General)}
                       >
                         General
+                      </Tabs.Tab>
+                      <Tabs.Tab
+                        selected={selectedAppearanceTab === AppearanceTab.Species}
+                        onClick={() => setSelectedAppearanceTab(AppearanceTab.Species)}
+                      >
+                        Species
                       </Tabs.Tab>
                       {isTabVisible(AppearanceTab.Hair) ? (
                         <Tabs.Tab
@@ -615,6 +521,7 @@ const AppearanceTabComponent = (props) => {
                   </Stack.Item>
                   <Stack.Item grow>
                     {getAppearanceTabContent(selectedAppearanceTab, {
+                      species_selection,
                       available_hair_styles,
                       available_facial_hair_styles,
                       available_hair_gradients,
@@ -649,6 +556,7 @@ const AppearanceTabComponent = (props) => {
             {selectedMainTab === Tab.Loadout && <LoadoutTab />}
             {selectedMainTab === Tab.Quirks && <QuirksTab />}
             {selectedMainTab === Tab.JobPreferences && <JobTab />}
+            {selectedMainTab === Tab.AntagPreferences && <AntagPreferencesTab />}
           </Stack.Item>
         </Stack>
       </Stack.Item>
@@ -660,6 +568,8 @@ const getAppearanceTabContent = (tab: AppearanceTab, props: any) => {
   switch (tab) {
     case AppearanceTab.General:
       return <GeneralSubTab {...props} />;
+    case AppearanceTab.Species:
+      return props.species_selection ? <SpeciesSelection data={props.species_selection} /> : null;
     case AppearanceTab.Hair:
       return <HairSubTab {...props} />;
     case AppearanceTab.FacialHair:
@@ -2292,7 +2202,6 @@ const QuirksTab = (props) => {
   );
 };
 
-/*
 const AntagPreferencesTab = () => {
   const { act, data } = useBackend<CharacterData>();
   const { antag_preferences = {}, available_antags = [] } = data;
@@ -2351,7 +2260,6 @@ const AntagPreferencesTab = () => {
             icon: undefined,
           },
         ];
-
 
   return (
     <Stack vertical fill>
@@ -2452,7 +2360,6 @@ const AntagPreferencesTab = () => {
     </Stack>
   );
 };
-  */
 
 const BackgroundTab = (props) => {
   const { act, data } = useBackend<CharacterData>();

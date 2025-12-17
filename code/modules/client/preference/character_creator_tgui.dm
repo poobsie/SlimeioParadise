@@ -1,3 +1,6 @@
+/// Main backend TGUI interface for character creator
+/// Frontend sibling: tgui/packages/tgui/interfaces/CharacterCreator.tsx
+
 /datum/character_creator
 	var/list/cached_hair_styles
 	var/cached_hair_species
@@ -22,36 +25,23 @@
 
 	var/datum/character_save/character = user.client.prefs.active_character
 
-	// Update and send character preview icons
-	if(SSatoms.initialized)
-		character.update_preview_icon()
-		var/timestamp = world.time
-		if(character.preview_icon_front)
-			user << browse_rsc(character.preview_icon_front, "char_preview_front_[timestamp].png")
-		if(character.preview_icon_side)
-			user << browse_rsc(character.preview_icon_side, "char_preview_side_[timestamp].png")
+	// Handle character preview icons
+	var/list/preview_data = handle_character_preview(user)
 
-	// Character selection data
-	var/list/character_list = list()
-	var/timestamp = world.time
-	for(var/i in 1 to length(user.client.prefs.character_saves))
-		var/datum/character_save/char_save = user.client.prefs.character_saves[i]
-		var/list/char_info = list()
-		char_info["slot"] = i
-		char_info["name"] = char_save.real_name || "Empty Slot"
-		char_info["species"] = char_save.species || "Human"
-		char_info["is_active"] = (char_save == user.client.prefs.active_character)
-		char_info["valid_save"] = char_save.valid_save
-		character_list += list(char_info)
-
-	data["character_saves"] = character_list
+	// Character selection data with headshots
+	data["character_saves"] = generate_character_headshots(user)
 	data["active_slot"] = character.slot_number
 
-	// Basic character info
+	// Basic character information data
+	data["basic_information"] = get_basic_information_data(user)
+	data["species_selection"] = get_species_selection_data(user)
+
+	// Basic character info (legacy - remove when fully migrated)
 	data["real_name"] = character.real_name
 	data["age"] = character.age
 	data["species"] = character.species
 	data["gender"] = character.gender == MALE ? "Male" : (character.gender == FEMALE ? "Female" : "Genderless")
+	data["available_genders"] = list("Male", "Female", "Genderless")
 	data["body_type"] = character.body_type == MALE ? "masculine" : "feminine"
 	data["flavor_text"] = character.flavor_text
 	data["physique"] = character.physique
@@ -70,9 +60,9 @@
 	data["nanotrasen_relation"] = character.nanotrasen_relation
 	data["cyborg_brain_type"] = character.cyborg_brain_type
 
-	// Preview icons, with timestamps
-	data["has_preview"] = SSatoms.initialized
-	data["preview_timestamp"] = world.time
+	// Preview data from character preview component
+	data["has_preview"] = preview_data["has_preview"]
+	data["preview_timestamp"] = preview_data["preview_timestamp"]
 
 	// Appearance
 	data["h_style"] = character.h_style
@@ -140,7 +130,6 @@
 		cached_facial_hair_styles = data["available_facial_hair_styles"]
 		cached_facial_hair_species = character.species
 	data["available_hair_gradients"] = get_available_hair_gradients()
-	data["available_genders"] = list("Male", "Female", "Genderless")
 
 	// Clothing options
 	data["available_underwear"] = get_available_underwear_with_icons(character)
@@ -338,28 +327,31 @@
 			if(slot_num && slot_num >= 1 && slot_num <= length(user.client.prefs.character_saves))
 				user.client.prefs.active_character = user.client.prefs.character_saves[slot_num]
 				user.client.prefs.default_slot = slot_num
+
+				// Update active character headshot from cache
+				var/slot_key = "slot_[slot_num]"
+				active_character_headshot = cached_headshots[slot_key]
+
 				// Refresh the entire UI with the new character's data
 				return TRUE
 
 		// Set a new name - sanitize input
 		if("set_name")
-			var/new_name = reject_bad_name(params["name"], TRUE)
-			if(new_name)
-				character.real_name = new_name
-			return refresh_preview(user)
+			if(set_character_name(user, params["name"]))
+				return refresh_preview(user)
+			return TRUE
 
 		// Set name to a random name
 		if("random_name")
-			character.real_name = random_name(character.gender, character.species)
-			return refresh_preview(user)
+			if(set_random_character_name(user))
+				return refresh_preview(user)
+			return TRUE
 
 		// Set the character's age
 		if("set_age")
-			var/new_age = text2num(params["age"])
-			if(new_age)
-				var/datum/species/S = GLOB.all_species[character.species]
-				character.age = clamp(new_age, S.min_age, S.max_age)
-			return refresh_preview(user)
+			if(set_character_age(user, params["age"]))
+				return refresh_preview(user)
+			return TRUE
 
 		// Set character's species
 		// A lot of things change when we update species - a lot of options become invalid or no longer shown.
@@ -426,15 +418,9 @@
 
 		// Character gender - Male, Female, Genderless, Object
 		if("set_gender")
-			var/new_gender = params["gender"]
-			switch(new_gender)
-				if("Male")
-					character.gender = MALE
-				if("Female")
-					character.gender = FEMALE
-				if("Genderless")
-					character.gender = NEUTER
-			return refresh_preview(user)
+			if(set_character_gender(user, params["gender"]))
+				return refresh_preview(user)
+			return TRUE
 
 		// Body type Masculine or Feminine
 		if("set_body_type")
@@ -534,13 +520,13 @@
 		if("set_hair_style")
 			var/new_style = params["style"]
 			character.h_style = new_style
-			return TRUE
+			return refresh_preview(user)
 
 		// Set character facial hair style
 		if("set_facial_hair_style")
 			var/new_style = params["style"]
 			character.f_style = new_style
-			return TRUE
+			return refresh_preview(user)
 
 		// Set character hair color
 		if("set_hair_color")
@@ -1404,16 +1390,8 @@
 
 // Helper function to refresh character preview (optimized to only run when appearance changes)
 /datum/character_creator/proc/refresh_preview(mob/user)
-	if(!user.client?.prefs?.active_character)
-		return FALSE
-	if(SSatoms.initialized)
-		var/datum/character_save/character = user.client.prefs.active_character
-		character.update_preview_icon()
-		var/timestamp = world.time
-		if(character.preview_icon_front)
-			user << browse_rsc(character.preview_icon_front, "char_preview_front_[timestamp].png")
-		if(character.preview_icon_side)
-			user << browse_rsc(character.preview_icon_side, "char_preview_side_[timestamp].png")
+	// Refresh main preview (this automatically updates the headshot too)
+	refresh_character_preview(user)
 	return TRUE
 
 /datum/character_creator/proc/get_available_head_accessory_styles_with_icons(datum/character_save/character)
