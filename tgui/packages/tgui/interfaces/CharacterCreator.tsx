@@ -8,6 +8,7 @@ import * as React from 'react';
 import {
   Box,
   Button,
+  ColorBox,
   Divider,
   Dropdown,
   Icon,
@@ -65,6 +66,13 @@ type CharacterData = {
   disabilities?: number;
   nanotrasen_relation?: string;
   cyborg_brain_type?: string;
+  // AI Settings
+  ai_name?: string;
+  ai_core_display?: string;
+  ai_hologram?: string;
+  ai_hologram_color?: string;
+  // Cyborg Settings  
+  cyborg_name?: string;
   // Character records
   med_record?: string;
   sec_record?: string;
@@ -105,6 +113,9 @@ type CharacterData = {
   available_accents?: Record<string, DisabilityInfo>;
   available_nanotrasen_relations?: string[];
   available_cyborg_brain_types?: string[];
+  // AI/Cyborg options
+  available_ai_core_displays?: string[];
+  available_ai_holograms?: string[];
   available_hair_styles: HairStyle[];
   available_facial_hair_styles: HairStyle[];
   available_hair_gradients: HairStyle[];
@@ -977,9 +988,6 @@ const GeneralSubTab = (props) => {
             </LabeledList>
           </Stack.Item>
         </Stack>
-      </Stack.Item>
-      <Stack.Item>
-        <SpeciesSection />
       </Stack.Item>
     </Stack>
   );
@@ -2369,6 +2377,12 @@ const BackgroundTab = (props) => {
     disabilities = 0,
     nanotrasen_relation,
     cyborg_brain_type,
+    // AI/Cyborg settings
+    ai_name,
+    ai_core_display,
+    ai_hologram,
+    ai_hologram_color,
+    cyborg_name,
     physique,
     height,
     flavor_text,
@@ -2381,6 +2395,9 @@ const BackgroundTab = (props) => {
     available_accents = {},
     available_nanotrasen_relations = ['Loyal', 'Supportive', 'Neutral', 'Skeptical', 'Opposed'],
     available_cyborg_brain_types = [],
+    // AI/Cyborg options
+    available_ai_core_displays = [],
+    available_ai_holograms = [],
     available_physiques = [],
     available_heights = [],
   } = data;
@@ -2529,31 +2546,89 @@ const BackgroundTab = (props) => {
                     </Stack>
                   </Section>
                 </Stack.Item>
-                <Stack.Item grow>
-                  <Section title="Cyborg Settings" fill>
-                    <LabeledList>
-                      <LabeledList.Item label="Brain Type">
-                        <Dropdown
-                          width="200px"
-                          selected={cyborg_brain_type || 'Posibrain'}
-                          options={
-                            available_cyborg_brain_types?.length > 0 ? available_cyborg_brain_types : ['Posibrain']
-                          }
-                          onSelected={(value) => act('set_cyborg_brain_type', { brain_type: value })}
-                        />
-                      </LabeledList.Item>
-                    </LabeledList>
-                    <Box mt={2} color="label" fontSize="12px">
-                      This determines what type of brain your character will have when playing as a cyborg.
-                    </Box>
-                  </Section>
-                </Stack.Item>
+                <Stack.Item grow></Stack.Item>
               </Stack>
             </Stack.Item>
 
             {/* Right column - wider */}
             <Stack.Item basis="60%" ml={2}>
-              <Section title="Character Records" fill>
+              {/* AI Settings */}
+              <Section title="AI Settings">
+                <LabeledList>
+                  <LabeledList.Item label="AI Name">
+                    <Input
+                      width="200px"
+                      value={ai_name || ''}
+                      placeholder="Default AI Name"
+                      onChange={(value) => act('set_ai_name', { name: value })}
+                    />
+                  </LabeledList.Item>
+                  <LabeledList.Item label="Core Display">
+                    <Dropdown
+                      width="200px"
+                      selected={ai_core_display || 'Blue'}
+                      options={
+                        available_ai_core_displays?.length > 0 ? available_ai_core_displays : ['Blue', 'Smiley']
+                      }
+                      onSelected={(value) => act('set_ai_core_display', { display: value })}
+                    />
+                  </LabeledList.Item>
+                  <LabeledList.Item label="Hologram">
+                    <Dropdown
+                      width="200px"
+                      selected={ai_hologram || 'default'}
+                      options={
+                        available_ai_holograms?.length > 0 ? available_ai_holograms : ['default', 'floating face']
+                      }
+                      onSelected={(value) => act('set_ai_hologram', { hologram: value })}
+                    />
+                  </LabeledList.Item>
+                  <LabeledList.Item label="Hologram Color">
+                    <ColorBox
+                      color={ai_hologram_color || '#ffffff'}
+                      onClick={() => act('set_ai_hologram_color')}
+                    />
+                  </LabeledList.Item>
+                </LabeledList>
+                <Box mt={2} color="label" fontSize="12px">
+                  These settings apply when playing as an AI. The core display affects your monitor appearance, and the hologram is your projected form.
+                </Box>
+                {/* Debug buttons for testing AI/cyborg jobs */}
+                <Box mt={2}>
+                  <Button onClick={() => act('set_ai_job_test')} content="Test AI Job" />
+                  <Button ml={1} onClick={() => act('set_cyborg_job_test')} content="Test Cyborg Job" />
+                  <Button ml={1} onClick={() => act('clear_job_test')} content="Clear Jobs" />
+                </Box>
+              </Section>
+
+              {/* Cyborg Settings */}
+              <Section title="Cyborg Settings" mt={2}>
+                <LabeledList>
+                  <LabeledList.Item label="Cyborg Name">
+                    <Input
+                      width="200px"
+                      value={cyborg_name || ''}
+                      placeholder="Default Cyborg Name"
+                      onChange={(value) => act('set_cyborg_name', { name: value })}
+                    />
+                  </LabeledList.Item>
+                  <LabeledList.Item label="Brain Type">
+                    <Dropdown
+                      width="200px"
+                      selected={cyborg_brain_type || 'Posibrain'}
+                      options={
+                        available_cyborg_brain_types?.length > 0 ? available_cyborg_brain_types : ['Posibrain']
+                      }
+                      onSelected={(value) => act('set_cyborg_brain_type', { brain_type: value })}
+                    />
+                  </LabeledList.Item>
+                </LabeledList>
+                <Box mt={2} color="label" fontSize="12px">
+                  These settings apply when playing as a cyborg. The brain type determines your processing unit, and the name is your designation.
+                </Box>
+              </Section>
+
+              <Section title="Character Records" fill mt={2}>
                 <Stack fill vertical>
                   {/* Flavor Text */}
                   <Stack.Item>

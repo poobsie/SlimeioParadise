@@ -44,6 +44,15 @@
 	/// The body accessory name of the mob (e.g. wings, tail).
 	var/body_accessory = null
 
+	// AI Settings
+	var/ai_name = ""
+	var/ai_core_display = "Blue"
+	var/ai_hologram = "default"
+	var/ai_hologram_color = "#0099FF"
+	
+	// Cyborg Settings
+	var/cyborg_name = ""
+
 	var/speciesprefs = 0 //I hate having to do this, I really do (Using this for oldvox code, making names universal I guess
 
 	//Mob preview
@@ -224,6 +233,11 @@
 					custom_emotes=:custom_emotes,
 					runechat_color=:runechat_color,
 					cyborg_brain_type=:cyborg_brain_type,
+					ai_name=:ai_name,
+					ai_core_display=:ai_core_display,
+					ai_hologram=:ai_hologram,
+					ai_hologram_color=:ai_hologram_color,
+					cyborg_name=:cyborg_name,
 					body_type=:body_type,
 					pda_ringtone=:pda_ringtone,
 					quirks=:quirks
@@ -289,6 +303,11 @@
 						"custom_emotes" = json_encode(custom_emotes),
 						"runechat_color" = runechat_color,
 						"cyborg_brain_type" = cyborg_brain_type,
+						"ai_name" = ai_name,
+						"ai_core_display" = ai_core_display,
+						"ai_hologram" = ai_hologram,
+						"ai_hologram_color" = ai_hologram_color,
+						"cyborg_name" = cyborg_name,
 						"pda_ringtone" = pda_ringtone,
 						"ckey" = C.ckey,
 						"slot" = slot_number,
@@ -331,7 +350,7 @@
 			player_alt_titles,
 			disabilities, organ_data, rlimb_data, nanotrasen_relation, physique, height, speciesprefs,
 			socks, body_accessory, gear, autohiss,
-			hair_gradient, hair_gradient_offset, hair_gradient_colour, hair_gradient_alpha, custom_emotes, runechat_color, cyborg_brain_type, body_type, pda_ringtone, quirks)
+			hair_gradient, hair_gradient_offset, hair_gradient_colour, hair_gradient_alpha, custom_emotes, runechat_color, cyborg_brain_type, ai_name, ai_core_display, ai_hologram, ai_hologram_color, cyborg_name, body_type, pda_ringtone, quirks)
 		VALUES
 			(:ckey, :slot, :metadata, :name, :be_random_name, :gender,
 			:age, :species, :language,
@@ -358,7 +377,7 @@
 			:playertitlelist,
 			:disabilities, :organ_list, :rlimb_list, :nanotrasen_relation, :physique, :height, :speciesprefs,
 			:socks, :body_accessory, :gearlist, :autohiss_mode,
-			:h_grad_style, :h_grad_offset, :h_grad_colour, :h_grad_alpha, :custom_emotes, :runechat_color, :cyborg_brain_type, :body_type, :pda_ringtone, :quirks)
+			:h_grad_style, :h_grad_offset, :h_grad_colour, :h_grad_alpha, :custom_emotes, :runechat_color, :cyborg_brain_type, :ai_name, :ai_core_display, :ai_hologram, :ai_hologram_color, :cyborg_name, :body_type, :pda_ringtone, :quirks)
 	"}, list(
 		// This has too many params for anyone to look at this without going insae
 		"ckey" = C.ckey,
@@ -422,6 +441,11 @@
 		"custom_emotes" = json_encode(custom_emotes),
 		"runechat_color" = runechat_color,
 		"cyborg_brain_type" = cyborg_brain_type,
+		"ai_name" = ai_name,
+		"ai_core_display" = ai_core_display,
+		"ai_hologram" = ai_hologram,
+		"ai_hologram_color" = ai_hologram_color,
+		"cyborg_name" = cyborg_name,
 		"pda_ringtone" = pda_ringtone,
 		"quirks" = quirks
 	))
@@ -516,10 +540,15 @@
 	physique = query.item[57]
 	height = query.item[58]
 	cyborg_brain_type = query.item[59]
-	body_type = query.item[60]
-	pda_ringtone = query.item[61]
+	ai_name = query.item[60]
+	ai_core_display = query.item[61] 
+	ai_hologram = query.item[62]
+	ai_hologram_color = query.item[63]
+	cyborg_name = query.item[64]
+	body_type = query.item[65]
+	pda_ringtone = query.item[66]
 
-	quirks = query.item[62]
+	quirks = query.item[67]
 
 	//Sanitize
 	var/datum/species/SP = GLOB.all_species[species]
@@ -607,6 +636,11 @@
 	custom_emotes = init_custom_emotes(custom_emotes_tmp)
 	runechat_color = sanitize_hexcolor(runechat_color)
 	cyborg_brain_type = sanitize_inlist(cyborg_brain_type, GLOB.borg_brain_choices, initial(cyborg_brain_type))
+	ai_name = sanitize_text(ai_name, initial(ai_name))
+	ai_core_display = sanitize_text(ai_core_display, initial(ai_core_display))
+	ai_hologram = sanitize_text(ai_hologram, initial(ai_hologram))
+	ai_hologram_color = sanitize_hexcolor(ai_hologram_color)
+	cyborg_name = sanitize_text(cyborg_name, initial(cyborg_name))
 	pda_ringtone = sanitize_inlist(pda_ringtone, GLOB.pda_ringtone_choices, initial(pda_ringtone))
 	quirks = sanitize_json(quirks)
 	if(!player_alt_titles)
@@ -850,6 +884,225 @@
 	qdel(preview_icon_side)
 	qdel(preview_icon)
 
+	// Check if AI or cyborg is the highest priority job
+	if(job_support_high & JOB_AI)
+		// Generate AI core display preview using correct AI icon states
+		var/core_display = ai_core_display || "Blue"
+		var/icon_state = "ai" // default
+		
+		// Map core display to proper AI icon states from ai_mob.dm
+		switch(core_display)
+			if("Monochrome")
+				icon_state = "ai-mono"
+			if("Blue")
+				icon_state = "ai"
+			if("Clown")
+				icon_state = "ai-clown"
+			if("Inverted")
+				icon_state = "ai-u"
+			if("Text")
+				icon_state = "ai-text"
+			if("Smiley")
+				icon_state = "ai-smiley"
+			if("Angry")
+				icon_state = "ai-angryface"
+			if("Dorf")
+				icon_state = "ai-dorf"
+			if("Matrix")
+				icon_state = "ai-matrix"
+			if("Bliss")
+				icon_state = "ai-bliss"
+			if("Firewall")
+				icon_state = "ai-magma"
+			if("Green")
+				icon_state = "ai-weird"
+			if("Red")
+				icon_state = "ai-red"
+			if("Static")
+				icon_state = "ai-static"
+			if("Triumvirate")
+				icon_state = "ai-triumvirate"
+			if("Triumvirate Static")
+				icon_state = "ai-triumvirate-malf"
+			if("Red October")
+				icon_state = "ai-redoctober"
+			if("Sparkles")
+				icon_state = "ai-sparkles"
+			if("ANIMA")
+				icon_state = "ai-anima"
+			if("President")
+				icon_state = "ai-president"
+			if("NT")
+				icon_state = "ai-nt"
+			if("NT2")
+				icon_state = "ai-nanotrasen"
+			if("Rainbow")
+				icon_state = "ai-rainbow"
+			if("Angel")
+				icon_state = "ai-angel"
+			if("Heartline")
+				icon_state = "ai-heartline"
+			if("Hades")
+				icon_state = "ai-hades"
+			if("Helios")
+				icon_state = "ai-helios"
+			if("Syndicat Meow")
+				icon_state = "ai-syndicatmeow"
+			if("Too Deep")
+				icon_state = "ai-toodeep"
+			if("Goon")
+				icon_state = "ai-goon"
+			if("Murica")
+				icon_state = "ai-murica"
+			if("Fuzzy")
+				icon_state = "ai-fuzz"
+			else
+				icon_state = "ai" // default blue AI
+		
+		// Create animated AI core icon (left/front view) - use /icon constructor format
+		var/icon/ai_core = new /icon('icons/mob/ai.dmi', icon_state)
+		// Don't scale as it can break animations - let TGUI handle sizing
+		// ai_core.Scale(64, 64)
+		
+		// Create hologram icon (right/side view)
+		var/hologram_type = ai_hologram || "default"
+		var/icon/ai_holo = new /icon('icons/mob/ai.dmi', "holo1") // default hologram
+		
+		// Map hologram to proper icon state
+		switch(hologram_type)
+			if("default")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo1")
+			if("floating face")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo2")
+			if("xeno queen")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo3")
+			if("eldritch")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo4")
+			if("ancient machine")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo-ancient")
+			if("angel")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo-angel")
+			if("borb")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo-borb")
+			if("biggest fan")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo-biggestfan")
+			if("cloudkat")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo-cloudkat")
+			if("donut")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo-donut")
+			if("frost phoenix")
+				ai_holo = new /icon('icons/mob/ai.dmi', "holo-frostphoenix")
+			if("engi bot")
+				ai_holo = new /icon('icons/mob/hivebot.dmi', "EngBot")
+			if("drone")
+				ai_holo = new /icon('icons/mob/animal.dmi', "drone0")
+			if("boxbot")
+				ai_holo = new /icon('icons/mob/pai.dmi', "boxbot")
+			if("ancient machine")
+				ai_holo = new /icon('icons/mob/ancient_machine.dmi', "ancient_machine")
+			else
+				// For animal holograms, match the actual AI mob code mappings
+				switch(hologram_type)
+					if("Bear")
+						ai_holo = new('icons/mob/animal.dmi', "bear")
+					if("Butterfly")
+						ai_holo = new('icons/mob/animal.dmi', "butterfly")
+					if("Carp")
+						ai_holo = new('icons/mob/carp.dmi', "holocarp")
+					if("Chicken")
+						ai_holo = new('icons/mob/animal.dmi', "chicken_brown")
+					if("Corgi")
+						ai_holo = new('icons/mob/animal.dmi', "corgi")
+					if("Cow")
+						ai_holo = new('icons/mob/animal.dmi', "cow")
+					if("Crab")
+						ai_holo = new('icons/mob/animal.dmi', "crab")
+					if("Deer")
+						ai_holo = new('icons/mob/animal.dmi', "deer")
+					if("Fox")
+						ai_holo = new('icons/mob/pets.dmi', "fox")
+					if("Goat")
+						ai_holo = new('icons/mob/animal.dmi', "goat")
+					if("Goose")
+						ai_holo = new('icons/mob/animal.dmi', "goose")
+					if("Kitten")
+						ai_holo = new('icons/mob/pets.dmi', "cat")
+					if("Kitten2")
+						ai_holo = new('icons/mob/pets.dmi', "cat2")
+					if("Lizard")
+						ai_holo = new('icons/mob/animal.dmi', "lizard")
+					if("Pig")
+						ai_holo = new('icons/mob/animal.dmi', "pig")
+					if("Poly")
+						ai_holo = new('icons/mob/animal.dmi', "parrot_fly")
+					if("Pug")
+						ai_holo = new('icons/mob/pets.dmi', "pug")
+					if("Seal")
+						ai_holo = new('icons/mob/animal.dmi', "seal")
+					if("Spider")
+						ai_holo = new('icons/mob/animal.dmi', "spider")
+					if("Turkey")
+						ai_holo = new('icons/mob/animal.dmi', "turkey")
+					if("Shantak")
+						ai_holo = new('icons/mob/animal.dmi', "shantak")
+					if("Bunny")
+						ai_holo = new('icons/mob/animal.dmi', "rabbit")
+					if("Hellhound")
+						ai_holo = new('icons/mob/animal.dmi', "hellhound")
+					if("Lightgeist")
+						ai_holo = new('icons/mob/animal.dmi', "lightgeist")
+					if("Cockroach")
+						ai_holo = new('icons/mob/animal.dmi', "cockroach")
+					if("Nian Caterpillar")
+						ai_holo = new('icons/mob/monkey.dmi', "mothroach")
+					if("Slime")
+						ai_holo = new('icons/mob/slimes.dmi', "grey baby slime")
+					if("Mecha-Cat")
+						ai_holo = new('icons/mob/pai.dmi', "cat")
+					if("Mecha-Fairy")
+						ai_holo = new('icons/mob/pai.dmi', "fairy")
+					if("Mecha-Fox")
+						ai_holo = new('icons/mob/pai.dmi', "fox")
+					if("Mecha-Monkey")
+						ai_holo = new('icons/mob/pai.dmi', "monkey")
+					if("Mecha-Mouse")
+						ai_holo = new('icons/mob/pai.dmi', "mouse")
+					if("Mecha-Snake")
+						ai_holo = new('icons/mob/pai.dmi', "snake")
+					if("Roller-Mouse")
+						ai_holo = new('icons/mob/robots.dmi', "mk2")
+					if("Roller-Monkey")
+						ai_holo = new('icons/mob/robots.dmi', "mk3")
+					else
+						ai_holo = new('icons/mob/ai.dmi', "holo1") // fallback
+		
+		// Apply hologram transparency and effects using proper hologram method
+		if(ai_hologram_color && ai_hologram_color != "")
+			ai_holo.ColorTone(ai_hologram_color)
+		else
+			ai_holo.ColorTone(rgb(125, 180, 225)) // Default hologram blue tint
+		
+		// Apply proper hologram transparency and scanline like actual game holograms
+		ai_holo.ChangeOpacity(0.39) // alpha=100 equivalent (100/255)
+		var/icon/scanline = new('icons/effects/effects.dmi', "scanline")
+		ai_holo.AddAlphaMask(scanline) // Add scanline effect like actual holograms
+		
+		ai_holo.Scale(64, 64)
+		
+		// Set preview icons: core left, hologram right
+		preview_icon = ai_core  // Front/left view shows AI core
+		preview_icon_front = new(ai_core, dir = SOUTH)  // Use directional variant like regular chars
+		preview_icon_side = new(ai_holo, dir = SOUTH)   // Side/right view shows hologram with direction
+		return // Exit early - do not generate character preview
+
+	if(job_support_high & JOB_CYBORG)
+		// Generate cyborg preview using /icon constructor format
+		var/icon/cyborg_icon = new /icon('icons/mob/robots.dmi', "robot")
+		preview_icon = cyborg_icon
+		preview_icon_front = new(cyborg_icon, dir = SOUTH)  // Use directional variant
+		preview_icon_side = new(cyborg_icon, dir = SOUTH)   // Same for both views
+		return // Exit early - do not generate character preview
+
 	var/g = "m"
 	if(body_type == FEMALE)
 		g = "f"
@@ -902,7 +1155,15 @@
 
 	// Skin color
 	if(current_species && (current_species.bodyflags & HAS_SKIN_COLOR))
-		preview_icon.Blend(s_colour, ICON_ADD)
+		// For IPCs with screen-type hair, don't apply skin color to preserve head/screen appearance
+		var/apply_skin_color = TRUE
+		if(current_species.name == "Machine")
+			var/datum/sprite_accessory/hair_style = GLOB.hair_styles_full_list[h_style]
+			if(hair_style && istype(hair_style, /datum/sprite_accessory/hair/ipc) && findtext(hair_style.name, "Screen"))
+				apply_skin_color = FALSE
+
+		if(apply_skin_color)
+			preview_icon.Blend(s_colour, ICON_ADD)
 
 	// Skin tone
 	if(current_species && (current_species.bodyflags & HAS_SKIN_TONE))
@@ -990,6 +1251,11 @@
 		var/icon/hair_s = new/icon("icon" = hair_style.icon, "icon_state" = "[hair_style.icon_state]_s")
 		if(current_species.name == "Slime People") // whee I am part of the problem
 			hair_s.Blend("[s_colour]A0", ICON_ADD)
+		else if(current_species.name == "Machine" && istype(hair_style, /datum/sprite_accessory/hair/ipc))
+			// IPC screens should not be affected by body/skin color - they maintain their original colors
+			// Only apply hair color if it's not a screen (i.e., they have actual hair accessories)
+			if(hair_style.do_colouration && !findtext(hair_style.name, "IPC Screen"))
+				hair_s.Blend(h_colour, ICON_ADD)
 		else if(hair_style.do_colouration)
 			hair_s.Blend(h_colour, ICON_ADD)
 

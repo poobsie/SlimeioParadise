@@ -18,9 +18,6 @@
 	for(var/species_name in get_available_species(user))
 		var/datum/species/S = GLOB.all_species[species_name]
 		if(S)
-			// Generate species preview image if needed
-			generate_species_preview(user, S, species_name)
-
 			available_species[species_name] = list(
 				"name" = S.name,
 				"description" = S.blurb,
@@ -29,6 +26,14 @@
 			)
 
 	data["available_species"] = available_species
+
+	// Generate character preview for selected species
+	if(SSatoms.initialized)
+		generate_species_character_preview(user, character)
+		data["has_character_preview"] = TRUE
+		data["preview_timestamp"] = world.time
+	else
+		data["has_character_preview"] = FALSE
 
 	return data
 
@@ -62,33 +67,56 @@
 
 	return TRUE
 
-/// Generates and caches a preview image for a species
-/datum/character_creator/proc/generate_species_preview(mob/user, datum/species/species, species_name)
-	if(!user?.client || !species)
+/// Generates a full character preview for the species selection (at 2x size, 100% opacity)
+/datum/character_creator/proc/generate_species_character_preview(mob/user, datum/character_save/character)
+	if(!user?.client || !character)
 		return FALSE
 
-	// Check if preview already exists and is cached
-	var/cache_file = "species_preview_[species_name].png"
+	// Create a temporary default character for this species preview (naked/basic)
+	var/datum/character_save/preview_character = new()
+	preview_character.species = character.species
+	preview_character.gender = MALE // Default to male for consistency
+	preview_character.body_type = MALE
+	preview_character.real_name = "Preview Character"
+	preview_character.age = 30
+	
+	// Set default appearance based on species
+	var/datum/species/S = GLOB.all_species[character.species]
+	if(S)
+		preview_character.h_style = "Bald" // Default bald
+		preview_character.f_style = "Shaved" // Default no facial hair
+		preview_character.s_colour = S.flesh_color || "#AAAAAA" // Default species skin color
+		preview_character.e_colour = "#000000" // Default black eyes
+		
+		// Set species-specific defaults
+		if(character.species == "Machine")
+			preview_character.h_style = "Blue IPC Screen" // Default IPC screen
+			preview_character.s_colour = "#AAAAAA" // Gray IPC body
+		else if(S.default_hair)
+			preview_character.h_style = S.default_hair
+			
+		// Clear all clothing/accessories for naked preview
+		preview_character.underwear = "Nude"
+		preview_character.undershirt = "Nude"
+		preview_character.socks = "Nude"
+		preview_character.body_accessory = null
+		preview_character.ha_style = "None"
+		for(var/marking_key in preview_character.m_styles)
+			preview_character.m_styles[marking_key] = "None"
 
-	// Generate species preview from their icobase using the same method as character preview
-	var/icon/species_preview
-	var/icobase = species.icobase
+	// Generate full character preview using the temporary character
+	preview_character.update_preview_icon()
 
-	if(!icobase)
-		icobase = 'icons/mob/human_races/r_human.dmi'
+	var/timestamp = world.time
 
-	// Build a basic torso + head preview (male version)
-	var/g = "m"
-	species_preview = new /icon(icobase, "torso_[g]")
-	species_preview.Blend(new /icon(icobase, "head_[g]"), ICON_OVERLAY)
+	// Create 2x size versions of the previews - only send front view
+	if(preview_character.preview_icon_front)
+		var/icon/front_preview = new(preview_character.preview_icon_front)
+		// Scale up 2x but keep original color/opacity intact
+		front_preview.Scale(front_preview.Width() * 2, front_preview.Height() * 2)
+		user << browse_rsc(front_preview, "species_char_preview_front_[timestamp].png")
 
-	// Apply species-specific coloring if needed
-	if(species.bodyflags & HAS_SKIN_COLOR)
-		if(species.flesh_color)
-			species_preview.Blend(species.flesh_color, ICON_ADD)
-
-	// Send the generated preview to client
-	if(species_preview && user.client)
-		user << browse_rsc(species_preview, cache_file)
+	// Clean up temporary character
+	qdel(preview_character)
 
 	return TRUE

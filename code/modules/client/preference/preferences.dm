@@ -739,6 +739,9 @@ GLOBAL_LIST_INIT(special_role_times, list(
 /datum/preferences/proc/build_loadout(datum/gear/new_item)
 	var/total_cost = 0
 	var/list/type_blacklist = list()
+	// Ensure loadout_gear is a list before trying to copy it
+	if(!islist(active_character.loadout_gear))
+		active_character.loadout_gear = list()
 	var/list/loadout_cache = active_character.loadout_gear.Copy()
 	active_character.loadout_gear.Cut()
 	if(new_item)

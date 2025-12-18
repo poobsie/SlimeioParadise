@@ -58,7 +58,6 @@
 	data["b_type"] = character.b_type
 	data["disabilities"] = character.disabilities
 	data["nanotrasen_relation"] = character.nanotrasen_relation
-	data["cyborg_brain_type"] = character.cyborg_brain_type
 
 	// Preview data from character preview component
 	data["has_preview"] = preview_data["has_preview"]
@@ -234,19 +233,43 @@
 		accent_list["lisp"] = list("name" = "Lisp", "flag" = DISABILITY_FLAG_LISP)
 		data["available_disabilities"] = disability_list
 		data["available_accents"] = accent_list
+		
+		// AI Settings (inside character check)
+		data["ai_name"] = character.ai_name
+		data["ai_core_display"] = character.ai_core_display
+		data["ai_hologram"] = character.ai_hologram
+		data["ai_hologram_color"] = character.ai_hologram_color
+		
+		// Cyborg Settings (additional)
+		data["cyborg_name"] = character.cyborg_name
+		
+		// Debug: Add job support info
+		data["job_support_high"] = character.job_support_high
+		data["has_ai_job"] = (character.job_support_high & JOB_AI) ? TRUE : FALSE
+		data["has_cyborg_job"] = (character.job_support_high & JOB_CYBORG) ? TRUE : FALSE
 	else
 		data["available_disabilities"] = list()
 		data["available_accents"] = list()
+		// AI/Cyborg defaults when no character
+		data["ai_name"] = ""
+		data["ai_core_display"] = "Blue"
+		data["ai_hologram"] = "default"
+		data["ai_hologram_color"] = "#0099FF"
+		data["cyborg_name"] = ""
 
 	// Nanotrasen relations
 	data["available_nanotrasen_relations"] = list("Loyal", "Supportive", "Neutral", "Skeptical", "Opposed")
 
 	// Cyborg brain types
-	var/list/available_brain_types
+	var/list/available_brain_types = list()
 	if(GLOB.borg_brain_choices)
 		for(var/brain_type in GLOB.borg_brain_choices)
 			available_brain_types |= brain_type
 	data["available_cyborg_brain_types"] = available_brain_types
+
+	// AI/Cyborg available options
+	data["available_ai_core_displays"] = get_available_ai_core_displays()
+	data["available_ai_holograms"] = get_available_ai_holograms()
 
 	// Species information with descriptions
 	var/list/species_info = list()
@@ -498,6 +521,70 @@
 			var/new_language = params["language"]
 			character.language = new_language
 			return TRUE
+
+		// AI Settings
+		if("set_ai_name")
+			var/new_name = reject_bad_name(params["name"], TRUE)
+			if(new_name)
+				character.ai_name = new_name
+			return TRUE
+
+		if("set_ai_core_display")
+			var/new_display = params["display"]
+			if(new_display in get_available_ai_core_displays())
+				character.ai_core_display = new_display
+			return refresh_preview(user)
+
+		if("set_ai_hologram")
+			var/new_hologram = params["hologram"]
+			if(new_hologram in get_available_ai_holograms())
+				character.ai_hologram = new_hologram
+			return refresh_preview(user)
+
+		if("set_ai_hologram_color")
+			var/new_color = tgui_input_color(user, "Choose hologram color", "Hologram Color", character.ai_hologram_color)
+			if(new_color)
+				character.ai_hologram_color = new_color
+			return refresh_preview(user)
+
+		// Cyborg Settings
+		if("set_cyborg_name")
+			var/new_name = reject_bad_name(params["name"], TRUE)
+			if(new_name)
+				character.cyborg_name = new_name
+			return TRUE
+
+		// AI Settings
+		if("set_ai_name")
+			var/new_name = reject_bad_name(params["name"], TRUE)
+			if(new_name)
+				character.ai_name = new_name
+			return TRUE
+			
+		if("set_ai_core_display")
+			var/new_display = params["display"]
+			if(new_display in get_available_ai_core_displays())
+				character.ai_core_display = new_display
+			return refresh_preview(user)
+			
+		if("set_ai_hologram")
+			var/new_hologram = params["hologram"]
+			if(new_hologram in get_available_ai_holograms())
+				character.ai_hologram = new_hologram
+			return refresh_preview(user)
+			
+		if("set_ai_hologram_color")
+			var/new_color = tgui_input_color(user, "Choose hologram color", "Hologram Color", character.ai_hologram_color)
+			if(new_color)
+				character.ai_hologram_color = new_color
+			return refresh_preview(user)
+		
+		// Cyborg Settings  
+		if("set_cyborg_name")
+			var/new_name = reject_bad_name(params["name"], TRUE)
+			if(new_name)
+				character.cyborg_name = new_name
+			return TRUE
 		if("set_blood_type")
 			var/new_blood_type = params["blood_type"]
 			character.b_type = new_blood_type
@@ -510,6 +597,39 @@
 			var/new_brain_type = params["brain_type"]
 			character.cyborg_brain_type = new_brain_type
 			return TRUE
+		// AI Settings
+		if("set_ai_name")
+			var/new_name = params["name"]
+			character.ai_name = new_name
+			return TRUE
+		if("set_ai_core_display")
+			var/new_display = params["display"]
+			character.ai_core_display = new_display
+			return refresh_preview(user)
+		if("set_ai_hologram")
+			var/new_hologram = params["hologram"]
+			character.ai_hologram = new_hologram
+			return refresh_preview(user)
+		if("set_ai_hologram_color")
+			var/new_color = input(user, "Choose hologram color:", "AI Hologram Color", character.ai_hologram_color || "#ffffff") as color|null
+			if(new_color)
+				character.ai_hologram_color = new_color
+			return refresh_preview(user)
+		// Cyborg Settings (additional)
+		if("set_cyborg_name")
+			var/new_name = params["name"]
+			character.cyborg_name = new_name
+			return TRUE
+		// Debug: Test setting AI job
+		if("set_ai_job_test")
+			character.job_support_high |= JOB_AI
+			return refresh_preview(user)
+		if("set_cyborg_job_test")
+			character.job_support_high |= JOB_CYBORG
+			return refresh_preview(user)
+		if("clear_job_test")
+			character.job_support_high = 0
+			return refresh_preview(user)
 		if("toggle_disability")
 			var/disability_flag = text2num(params["disability"])
 			if(disability_flag)
@@ -1392,6 +1512,9 @@
 /datum/character_creator/proc/refresh_preview(mob/user)
 	// Refresh main preview (this automatically updates the headshot too)
 	refresh_character_preview(user)
+	// Also refresh species character preview for species selection tab
+	if(user.client?.prefs?.active_character)
+		generate_species_character_preview(user, user.client.prefs.active_character)
 	return TRUE
 
 /datum/character_creator/proc/get_available_head_accessory_styles_with_icons(datum/character_save/character)
@@ -1527,3 +1650,121 @@
 			))
 
 	return available
+
+// Get available AI core display options (from AI core selection code)
+/datum/character_creator/proc/get_available_ai_core_displays()
+	var/list/displays = list(
+		"Monochrome",
+		"Blue",
+		"Clown", 
+		"Inverted",
+		"Text",
+		"Smiley",
+		"Angry",
+		"Dorf",
+		"Matrix",
+		"Bliss",
+		"Firewall",
+		"Green",
+		"Red",
+		"Static",
+		"Triumvirate",
+		"Triumvirate Static",
+		"Red October",
+		"Sparkles",
+		"ANIMA",
+		"President",
+		"NT",
+		"NT2",
+		"Rainbow",
+		"Angel",
+		"Heartline",
+		"Hades",
+		"Helios",
+		"Syndicat Meow",
+		"Too Deep",
+		"Goon",
+		"Murica",
+		"Fuzzy",
+		"Glitchman",
+		"House",
+		"Database",
+		"Alien",
+		"Tiger",
+		"Fox",
+		"Vox",
+		"Lizard",
+		"Dark Matter",
+		"Cheese",
+		"Rainbow Slime",
+		"Void Donut",
+		"NAD Burn",
+		"Borb",
+		"Bee",
+		"Catamari",
+		"Malfunctioning"
+	)
+	return displays
+
+// Get available AI hologram options (from AI hologram code)
+/datum/character_creator/proc/get_available_ai_holograms()
+	var/list/holograms = list()
+	
+	// Default unique AI holograms
+	holograms += list(
+		"default",
+		"floating face",
+		"xeno queen",
+		"eldritch",
+		"ancient machine",
+		"angel",
+		"borb",
+		"biggest fan",
+		"cloudkat",
+		"donut",
+		"frost phoenix",
+		"engi bot",
+		"drone",
+		"boxbot"
+	)
+	
+	// Animal holograms
+	holograms += list(
+		"Bear",
+		"Butterfly",
+		"Carp",
+		"Chicken",
+		"Corgi",
+		"Cow",
+		"Crab",
+		"Deer",
+		"Fox",
+		"Goat",
+		"Goose",
+		"Kitten",
+		"Kitten2",
+		"Lizard",
+		"Pig",
+		"Poly",
+		"Pug",
+		"Seal",
+		"Spider",
+		"Turkey",
+		"Shantak",
+		"Bunny",
+		"Hellhound",
+		"Lightgeist",
+		"Cockroach",
+		"Nian Caterpillar",
+		"Slime",
+		"Mecha-Cat",
+		"Mecha-Fairy",
+		"Mecha-Fox",
+		"Mecha-Monkey",
+		"Mecha-Mouse",
+		"Mecha-Snake",
+		"Roller-Mouse",
+		"Roller-Monkey"
+	)
+	
+	return holograms
