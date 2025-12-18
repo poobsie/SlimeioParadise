@@ -30,7 +30,7 @@ const DoubleBufferedHeadshot = ({ character, style }: { character: CharacterSave
       setPreviousImage(currentImage || null);
       setShowPrevious(!!currentImage);
 
-      if (character.preview_headshot) {
+      if (character.preview_headshot && character.valid_save) {
         // Preload new image
         const img = new Image();
         img.onload = () => {
@@ -43,12 +43,12 @@ const DoubleBufferedHeadshot = ({ character, style }: { character: CharacterSave
         };
         img.src = character.preview_headshot;
       } else {
-        setCurrentImage(character.preview_headshot);
+        setCurrentImage(character.valid_save ? character.preview_headshot : undefined);
         setShowPrevious(false);
         setPreviousImage(null);
       }
     }
-  }, [character.preview_headshot, currentImage]);
+  }, [character.preview_headshot, character.valid_save, currentImage]);
 
   return (
     <div style={style}>
@@ -70,7 +70,7 @@ const DoubleBufferedHeadshot = ({ character, style }: { character: CharacterSave
         />
       )}
       {/* Current image or slot number */}
-      {currentImage ? (
+      {currentImage && character.valid_save ? (
         <div
           style={{
             width: '100%',
@@ -164,7 +164,7 @@ export const CharacterSelection = (props: CharacterSelectionProps) => {
               maxWidth: '76px',
             }}
           >
-            {character.name || `Slot ${character.slot}`}
+            {character.valid_save && character.name ? character.name : `Slot ${character.slot}`}
           </div>
         </div>
       ))}
