@@ -125,7 +125,9 @@
 			"name" = quirk.name,
 			"desc" = quirk.desc,
 			"cost" = quirk.cost,
-			"path" = quirk.type
+			"path" = quirk.type,
+			"configurable" = quirk.configurable,
+			"species_flags" = quirk.species_flags
 		)
 		GLOB.quirk_paths[quirk.name] = quirk.type // This will let us get the datum of a quirk with just the name later.
 		GLOB.quirk_tgui_info += list(data)

@@ -79,7 +79,7 @@
 	preview_character.body_type = MALE
 	preview_character.real_name = "Preview Character"
 	preview_character.age = 30
-	
+
 	// Set default appearance based on species
 	var/datum/species/S = GLOB.all_species[character.species]
 	if(S)
@@ -87,14 +87,14 @@
 		preview_character.f_style = "Shaved" // Default no facial hair
 		preview_character.s_colour = S.flesh_color || "#AAAAAA" // Default species skin color
 		preview_character.e_colour = "#000000" // Default black eyes
-		
+
 		// Set species-specific defaults
 		if(character.species == "Machine")
 			preview_character.h_style = "Blue IPC Screen" // Default IPC screen
 			preview_character.s_colour = "#AAAAAA" // Gray IPC body
 		else if(S.default_hair)
 			preview_character.h_style = S.default_hair
-			
+
 		// Clear all clothing/accessories for naked preview
 		preview_character.underwear = "Nude"
 		preview_character.undershirt = "Nude"

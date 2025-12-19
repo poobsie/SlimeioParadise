@@ -121,6 +121,7 @@
 	name = "Animal Lover"
 	desc = "You brought one of your pets to work today! Make sure to name them with your collar."
 	cost = 1
+	configurable = TRUE
 	item_to_give = /obj/item/petcollar
 	var/list/possible_pets = list(/mob/living/simple_animal/pet/dog/corgi, /mob/living/simple_animal/pet/cat, /mob/living/simple_animal/pet/dog/pug,
 							/mob/living/simple_animal/pet/dog/fox, /mob/living/basic/chick, /mob/living/basic/bunny, /mob/living/basic/turkey)

@@ -63,6 +63,11 @@
 		physique,
 		height,
 		cyborg_brain_type,
+		ai_name,
+		ai_core_display,
+		ai_hologram,
+		ai_hologram_color,
+		cyborg_name,
 		body_type,
 		pda_ringtone,
 		quirks

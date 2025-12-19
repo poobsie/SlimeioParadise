@@ -3,15 +3,13 @@
  * Backend sibling: code/modules/client/preference/character_creator_tgui.dm
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import * as React from 'react';
 import {
   Box,
   Button,
   ColorBox,
-  Divider,
   Dropdown,
-  Icon,
   ImageButton,
   Input,
   LabeledList,
@@ -72,7 +70,7 @@ type CharacterData = {
   ai_core_display?: string;
   ai_hologram?: string;
   ai_hologram_color?: string;
-  // Cyborg Settings  
+  // Cyborg Settings
   cyborg_name?: string;
   // Character records
   med_record?: string;
@@ -2374,7 +2372,7 @@ const BackgroundTab = (props) => {
                     </Stack>
                   </Section>
                 </Stack.Item>
-                <Stack.Item grow></Stack.Item>
+                <Stack.Item grow />
               </Stack>
             </Stack.Item>
 
@@ -2395,9 +2393,7 @@ const BackgroundTab = (props) => {
                     <Dropdown
                       width="200px"
                       selected={ai_core_display || 'Blue'}
-                      options={
-                        available_ai_core_displays?.length > 0 ? available_ai_core_displays : ['Blue', 'Smiley']
-                      }
+                      options={available_ai_core_displays?.length > 0 ? available_ai_core_displays : ['Blue', 'Smiley']}
                       onSelected={(value) => act('set_ai_core_display', { display: value })}
                     />
                   </LabeledList.Item>
@@ -2412,14 +2408,12 @@ const BackgroundTab = (props) => {
                     />
                   </LabeledList.Item>
                   <LabeledList.Item label="Hologram Color">
-                    <ColorBox
-                      color={ai_hologram_color || '#ffffff'}
-                      onClick={() => act('set_ai_hologram_color')}
-                    />
+                    <ColorBox color={ai_hologram_color || '#ffffff'} onClick={() => act('set_ai_hologram_color')} />
                   </LabeledList.Item>
                 </LabeledList>
                 <Box mt={2} color="label" fontSize="12px">
-                  These settings apply when playing as an AI. The core display affects your monitor appearance, and the hologram is your projected form.
+                  These settings apply when playing as an AI. The core display affects your monitor appearance, and the
+                  hologram is your projected form.
                 </Box>
                 {/* Debug buttons for testing AI/cyborg jobs */}
                 <Box mt={2}>
@@ -2444,15 +2438,14 @@ const BackgroundTab = (props) => {
                     <Dropdown
                       width="200px"
                       selected={cyborg_brain_type || 'Posibrain'}
-                      options={
-                        available_cyborg_brain_types?.length > 0 ? available_cyborg_brain_types : ['Posibrain']
-                      }
+                      options={available_cyborg_brain_types?.length > 0 ? available_cyborg_brain_types : ['Posibrain']}
                       onSelected={(value) => act('set_cyborg_brain_type', { brain_type: value })}
                     />
                   </LabeledList.Item>
                 </LabeledList>
                 <Box mt={2} color="label" fontSize="12px">
-                  These settings apply when playing as a cyborg. The brain type determines your processing unit, and the name is your designation.
+                  These settings apply when playing as a cyborg. The brain type determines your processing unit, and the
+                  name is your designation.
                 </Box>
               </Section>
 

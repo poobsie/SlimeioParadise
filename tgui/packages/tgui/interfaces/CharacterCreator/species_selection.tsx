@@ -3,8 +3,8 @@
  * Backend sibling: code/modules/client/preference/character_creator/species_selection.dm
  */
 
-import { Box, Stack } from 'tgui-core/components';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Box } from 'tgui-core/components';
 
 import { useBackend } from '../../backend';
 

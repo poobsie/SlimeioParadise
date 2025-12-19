@@ -49,7 +49,7 @@
 	var/ai_core_display = "Blue"
 	var/ai_hologram = "default"
 	var/ai_hologram_color = "#0099FF"
-	
+
 	// Cyborg Settings
 	var/cyborg_name = ""
 
@@ -541,7 +541,7 @@
 	height = query.item[58]
 	cyborg_brain_type = query.item[59]
 	ai_name = query.item[60]
-	ai_core_display = query.item[61] 
+	ai_core_display = query.item[61]
 	ai_hologram = query.item[62]
 	ai_hologram_color = query.item[63]
 	cyborg_name = query.item[64]
@@ -889,7 +889,7 @@
 		// Generate AI core display preview using correct AI icon states
 		var/core_display = ai_core_display || "Blue"
 		var/icon_state = "ai" // default
-		
+
 		// Map core display to proper AI icon states from ai_mob.dm
 		switch(core_display)
 			if("Monochrome")
@@ -958,16 +958,16 @@
 				icon_state = "ai-fuzz"
 			else
 				icon_state = "ai" // default blue AI
-		
+
 		// Create animated AI core icon (left/front view) - use /icon constructor format
 		var/icon/ai_core = new /icon('icons/mob/ai.dmi', icon_state)
 		// Don't scale as it can break animations - let TGUI handle sizing
 		// ai_core.Scale(64, 64)
-		
+
 		// Create hologram icon (right/side view)
 		var/hologram_type = ai_hologram || "default"
 		var/icon/ai_holo = new /icon('icons/mob/ai.dmi', "holo1") // default hologram
-		
+
 		// Map hologram to proper icon state
 		switch(hologram_type)
 			if("default")
@@ -1075,20 +1075,20 @@
 						ai_holo = new('icons/mob/robots.dmi', "mk3")
 					else
 						ai_holo = new('icons/mob/ai.dmi', "holo1") // fallback
-		
+
 		// Apply hologram transparency and effects using proper hologram method
 		if(ai_hologram_color && ai_hologram_color != "")
 			ai_holo.ColorTone(ai_hologram_color)
 		else
 			ai_holo.ColorTone(rgb(125, 180, 225)) // Default hologram blue tint
-		
+
 		// Apply proper hologram transparency and scanline like actual game holograms
 		ai_holo.ChangeOpacity(0.39) // alpha=100 equivalent (100/255)
 		var/icon/scanline = new('icons/effects/effects.dmi', "scanline")
 		ai_holo.AddAlphaMask(scanline) // Add scanline effect like actual holograms
-		
+
 		ai_holo.Scale(64, 64)
-		
+
 		// Set preview icons: core left, hologram right
 		preview_icon = ai_core  // Front/left view shows AI core
 		preview_icon_front = new(ai_core, dir = SOUTH)  // Use directional variant like regular chars

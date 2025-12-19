@@ -4,7 +4,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Box, Button, Divider, Icon, Section, Stack } from 'tgui-core/components';
+import { Box, Button, Divider, Section, Stack } from 'tgui-core/components';
+
 import { useBackend } from '../../backend';
 
 // Add CSS for hover effects
@@ -29,9 +30,7 @@ interface Quirk {
   desc: string;
   cost: number;
   path: string;
-  species_whitelist?: string[];
-  species_blacklist?: string[];
-  machine_only?: boolean;
+  species_flags?: number;
 }
 
 interface CharacterCreatorData {
@@ -41,6 +40,12 @@ interface CharacterCreatorData {
   species?: string;
   is_machine_species?: boolean;
 }
+
+// Quirk flag constants (matching backend defines)
+const QUIRK_ORGANIC_INCOMPATIBLE = 1 << 1;
+const QUIRK_MACHINE_INCOMPATIBLE = 1 << 2;
+const QUIRK_SLIME_INCOMPATIBLE = 1 << 3;
+const QUIRK_PLASMAMAN_INCOMPATIBLE = 1 << 4;
 
 const calculateBalance = (selected: string[], allQuirks: Quirk[]) => {
   return selected.reduce((sum, quirkName) => {
@@ -60,32 +65,30 @@ export const QuirksTab = (props) => {
 
   useEffect(() => setSelected(selectedQuirks), [selectedQuirks]);
 
-  // Filter quirks based on species requirements
+  // Filter quirks based on species compatibility
   const isQuirkAvailable = (quirk: Quirk) => {
-    // Debug logging
-    if (quirk.machine_only) {
-      console.log(`Machine quirk ${quirk.name}: species=${species}, isMachine=${isMachineSpecies}`);
-    }
-    
-    // Check machine-only restriction
-    if (quirk.machine_only && !isMachineSpecies) {
+    if (!quirk.species_flags) return true;
+
+    // Check machine incompatibility
+    if ((quirk.species_flags & QUIRK_MACHINE_INCOMPATIBLE) && species === 'Machine') {
       return false;
     }
-    
-    // Check species whitelist (if present, species must be in the list)
-    if (quirk.species_whitelist && quirk.species_whitelist.length > 0) {
-      if (!quirk.species_whitelist.includes(species)) {
-        return false;
-      }
+
+    // Check organic incompatibility  
+    if ((quirk.species_flags & QUIRK_ORGANIC_INCOMPATIBLE) && species !== 'Machine') {
+      return false;
     }
-    
-    // Check species blacklist (if present, species must NOT be in the list)
-    if (quirk.species_blacklist && quirk.species_blacklist.length > 0) {
-      if (quirk.species_blacklist.includes(species)) {
-        return false;
-      }
+
+    // Check slime people incompatibility
+    if ((quirk.species_flags & QUIRK_SLIME_INCOMPATIBLE) && species === 'Slime People') {
+      return false;
     }
-    
+
+    // Check plasmaman incompatibility
+    if ((quirk.species_flags & QUIRK_PLASMAMAN_INCOMPATIBLE) && species === 'Plasmaman') {
+      return false;
+    }
+
     return true;
   };
 
@@ -122,8 +125,7 @@ export const QuirksTab = (props) => {
   const renderQuirkLine = (q: Quirk) => {
     const chosen = selectedSet.has(q.name);
     const cost = q.cost > 0 ? `-${q.cost}` : `+${Math.abs(q.cost)}`;
-    const costColor = q.cost > 0 ? '#ff4444' : '#44ff44';
-    const icon = q.cost > 0 ? 'plus-circle' : 'minus-circle';
+    const costColor = q.cost > 0 ? '#44ff44' : '#ff4444'; // Green for cost, red for give
 
     let disabled = false;
     if (!chosen) {
@@ -159,67 +161,58 @@ export const QuirksTab = (props) => {
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-            <Icon 
-              name={icon} 
-              style={{ 
-                marginRight: '8px', 
-                color: costColor,
-                fontSize: '14px',
-                flexShrink: 0
-              }} 
-            />
-            <span style={{ 
-              fontSize: '13px', 
-              fontWeight: chosen ? 'bold' : 'normal',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
+            <span
+              style={{
+                fontSize: '13px',
+                fontWeight: chosen ? 'bold' : 'normal',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {q.name}
             </span>
           </div>
-          <span 
-            style={{ 
-              fontSize: '13px', 
+          <span
+            style={{
+              fontSize: '13px',
               fontWeight: 'bold',
               color: costColor,
               flexShrink: 0,
-              marginLeft: '8px'
+              marginLeft: '8px',
             }}
           >
             {cost}
           </span>
         </div>
-          {cost}
-        </span>
       </Button>
     );
   };
 
-  // Separate available quirks into positive and negative
-  const negativeQuirks = availableQuirks.filter((q) => q.cost < 0);
-  const positiveQuirks = availableQuirks.filter((q) => q.cost > 0);
+  // Separate available quirks into positive and negative, then sort by cost descending
+  const negativeQuirks = availableQuirks
+    .filter((q) => q.cost < 0)
+    .sort((a, b) => a.cost - b.cost); // More negative values first (-4, -3, -2, -1)
+  const positiveQuirks = availableQuirks
+    .filter((q) => q.cost > 0)
+    .sort((a, b) => b.cost - a.cost); // Higher costs first (4, 3, 2, 1)
 
   return (
     <Section title="Quirks" fill>
       <Stack fill>
         <Stack.Item grow basis={500}>
           <Stack fill>
-            {/* Left column - Negative Quirks */}
+            {/* Left column - Positive Quirks */}
             <Stack.Item basis="50%">
-              <Section title="Negative Quirks (+Points)" fill scrollable>
-                <Stack vertical>
-                  {negativeQuirks.map(renderQuirkLine)}
-                </Stack>
+              <Section fill scrollable>
+                <Stack vertical>{positiveQuirks.map(renderQuirkLine)}</Stack>
               </Section>
             </Stack.Item>
-            
-            {/* Right column - Positive Quirks */}
+
+            {/* Right column - Negative Quirks */}
             <Stack.Item basis="50%" ml={1}>
-              <Section title="Positive Quirks (-Points)" fill scrollable>
-                <Stack vertical>
-                  {positiveQuirks.map(renderQuirkLine)}
-                </Stack>
+              <Section fill scrollable>
+                <Stack vertical>{negativeQuirks.map(renderQuirkLine)}</Stack>
               </Section>
             </Stack.Item>
           </Stack>
@@ -242,7 +235,7 @@ export const QuirksTab = (props) => {
                   const q = allQuirks.find((x) => x.name === name);
                   if (!q) return null;
                   const cost = q.cost > 0 ? `-${q.cost}` : `+${Math.abs(q.cost)}`;
-                  const border = q.cost > 0 ? 'var(--color-bad)' : 'var(--color-good)';
+                  const border = q.cost > 0 ? 'var(--color-good)' : 'var(--color-bad)'; // Green for cost, red for give
                   return (
                     <Box key={name} mb={0.5} p={0.5} style={{ borderLeft: `3px solid ${border}` }}>
                       <Stack justify="space-between">

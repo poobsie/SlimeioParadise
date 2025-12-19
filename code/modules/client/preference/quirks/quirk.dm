@@ -26,6 +26,8 @@ GLOBAL_LIST_EMPTY(quirk_paths)
 	var/organ_slot_to_remove
 	/// If the quirk should spawn a mob with the player.
 	var/mob_to_spawn
+	/// If this quirk has configurable options that show a settings button
+	var/configurable = FALSE
 
 /datum/quirk/Destroy(force, ...)
 	remove_quirk_effects()

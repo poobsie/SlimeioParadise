@@ -233,16 +233,16 @@
 		accent_list["lisp"] = list("name" = "Lisp", "flag" = DISABILITY_FLAG_LISP)
 		data["available_disabilities"] = disability_list
 		data["available_accents"] = accent_list
-		
+
 		// AI Settings (inside character check)
 		data["ai_name"] = character.ai_name
 		data["ai_core_display"] = character.ai_core_display
 		data["ai_hologram"] = character.ai_hologram
 		data["ai_hologram_color"] = character.ai_hologram_color
-		
+
 		// Cyborg Settings (additional)
 		data["cyborg_name"] = character.cyborg_name
-		
+
 		// Debug: Add job support info
 		data["job_support_high"] = character.job_support_high
 		data["has_ai_job"] = (character.job_support_high & JOB_AI) ? TRUE : FALSE
@@ -560,26 +560,26 @@
 			if(new_name)
 				character.ai_name = new_name
 			return TRUE
-			
+
 		if("set_ai_core_display")
 			var/new_display = params["display"]
 			if(new_display in get_available_ai_core_displays())
 				character.ai_core_display = new_display
 			return refresh_preview(user)
-			
+
 		if("set_ai_hologram")
 			var/new_hologram = params["hologram"]
 			if(new_hologram in get_available_ai_holograms())
 				character.ai_hologram = new_hologram
 			return refresh_preview(user)
-			
+
 		if("set_ai_hologram_color")
 			var/new_color = tgui_input_color(user, "Choose hologram color", "Hologram Color", character.ai_hologram_color)
 			if(new_color)
 				character.ai_hologram_color = new_color
 			return refresh_preview(user)
-		
-		// Cyborg Settings  
+
+		// Cyborg Settings
 		if("set_cyborg_name")
 			var/new_name = reject_bad_name(params["name"], TRUE)
 			if(new_name)
@@ -1656,7 +1656,7 @@
 	var/list/displays = list(
 		"Monochrome",
 		"Blue",
-		"Clown", 
+		"Clown",
 		"Inverted",
 		"Text",
 		"Smiley",
@@ -1709,7 +1709,7 @@
 // Get available AI hologram options (from AI hologram code)
 /datum/character_creator/proc/get_available_ai_holograms()
 	var/list/holograms = list()
-	
+
 	// Default unique AI holograms
 	holograms += list(
 		"default",
@@ -1727,7 +1727,7 @@
 		"drone",
 		"boxbot"
 	)
-	
+
 	// Animal holograms
 	holograms += list(
 		"Bear",
@@ -1766,5 +1766,5 @@
 		"Roller-Mouse",
 		"Roller-Monkey"
 	)
-	
+
 	return holograms
