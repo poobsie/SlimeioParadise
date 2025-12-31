@@ -92,6 +92,16 @@
 		to_chat(M.occupant, SPAN_USERDANGER("The wall's intense heat completely reflects your [M.name]'s attack!"))
 		M.take_damage(20, BURN)
 
+/turf/simulated/wall/nanodrone
+	name = "nanodrone wall"
+	desc = "A sleek wall panel used in Nanotoys nanodrone facilities."
+	icon = 'icons/turf/walls/plasma_wall.dmi'
+	icon_state = "abductor_wall-0"
+	base_icon_state = "abductor_wall"
+	smoothing_flags = SMOOTH_BITMASK | SMOOTH_DIAGONAL_CORNERS
+	smoothing_groups = list(SMOOTH_GROUP_SIMULATED_TURFS, SMOOTH_GROUP_WALLS, SMOOTH_GROUP_ABDUCTOR_WALLS)
+	canSmoothWith = list(SMOOTH_GROUP_ABDUCTOR_WALLS)
+
 /turf/simulated/wall/boss
 	name = "ancient wall"
 	desc = "A thick metal wall, it look very old."

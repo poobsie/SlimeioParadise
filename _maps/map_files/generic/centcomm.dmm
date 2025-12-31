@@ -7539,6 +7539,10 @@
 	},
 /turf/simulated/floor/plasteel,
 /area/tdome/arena_source)
+"Aq" = (
+/obj/effect/landmark/nanodrone_hub_destination,
+/turf/simulated/floor/nanodrone,
+/area/centcom/nanodrone_hub)
 "Ar" = (
 /obj/structure/rack,
 /obj/item/clothing/under/rank/centcom/captain{
@@ -9760,6 +9764,9 @@
 "Jh" = (
 /turf/simulated/wall/indestructible/riveted,
 /area/tdome/tdomeadmin)
+"Jk" = (
+/turf/simulated/wall/nanodrone,
+/area/centcom/nanodrone_hub)
 "Jl" = (
 /obj/structure/closet/secure_closet/freezer/fridge/open,
 /obj/item/food/grown/potato,
@@ -11392,6 +11399,10 @@
 "Pu" = (
 /turf/simulated/floor/plasteel/freezer,
 /area/ghost_bar)
+"Pv" = (
+/obj/machinery/nanodrone_hub_return_gate,
+/turf/simulated/floor/nanodrone,
+/area/centcom/nanodrone_hub)
 "Pw" = (
 /obj/structure/table/wood,
 /obj/item/storage/box/drinkingglasses,
@@ -11866,6 +11877,9 @@
 /obj/effect/mob_spawn/human/alive/ghost_bar,
 /turf/simulated/floor/mineral/plastitanium/red,
 /area/ghost_bar)
+"Rc" = (
+/turf/simulated/floor/nanodrone,
+/area/centcom/nanodrone_hub)
 "Rd" = (
 /obj/structure/table/wood/fancy/royalblack,
 /obj/item/ashtray/glass,
@@ -13041,6 +13055,10 @@
 /obj/machinery/status_display,
 /turf/simulated/wall/indestructible/riveted,
 /area/centcom/specops)
+"VJ" = (
+/obj/machinery/nanodrone_happiness_deposit,
+/turf/simulated/floor/nanodrone,
+/area/centcom/nanodrone_hub)
 "VK" = (
 /obj/structure/fence,
 /turf/simulated/floor/plating/asteroid/snow,
@@ -13112,6 +13130,10 @@
 /obj/effect/landmark/spawner/ertdirector,
 /turf/simulated/floor/carpet,
 /area/centcom/specops)
+"Wc" = (
+/obj/machinery/computer/nanodrone_hub_console,
+/turf/simulated/floor/nanodrone,
+/area/centcom/nanodrone_hub)
 "Wd" = (
 /turf/simulated/floor/transparent/glass/reinforced,
 /area/centcom/control)
@@ -75336,13 +75358,13 @@ aN
 aN
 aN
 aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
+Jk
+Jk
+Jk
+Jk
+Jk
+Jk
+Jk
 aN
 aN
 aN
@@ -75593,13 +75615,13 @@ aN
 aN
 aN
 aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
+Jk
+Rc
+Rc
+Rc
+Rc
+Rc
+Jk
 aN
 aN
 aN
@@ -75850,14 +75872,14 @@ aN
 aN
 aN
 aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
+Jk
+VJ
+Rc
+Rc
+Rc
+Rc
+Jk
+Jk
 aN
 aN
 aN
@@ -76107,14 +76129,14 @@ aN
 aN
 aN
 aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
+Jk
+Wc
+Rc
+Rc
+Rc
+Aq
+Pv
+Jk
 aN
 aN
 aN
@@ -76364,14 +76386,14 @@ aN
 aN
 aN
 aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
+Jk
+Rc
+Rc
+Rc
+Rc
+Rc
+Jk
+Jk
 aN
 aN
 aN
@@ -76621,13 +76643,13 @@ aN
 aN
 aN
 aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
+Jk
+Rc
+Rc
+Rc
+Rc
+Rc
+Jk
 aN
 aN
 aN
@@ -76878,13 +76900,13 @@ aN
 aN
 aN
 aN
-aN
-aN
-aN
-aN
-aN
-aN
-aN
+Jk
+Jk
+Jk
+Jk
+Jk
+Jk
+Jk
 aN
 aN
 aN

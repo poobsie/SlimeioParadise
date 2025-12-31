@@ -241,6 +241,9 @@
 			if(HAS_TRAIT(src, TRAIT_CMAGGED) && !user.can_advanced_admin_interact()) //cmag should not prevent admin intervention
 				cmag_switch(FALSE, user)
 				return
+			var/mob/living/silicon/robot/drone/nanodrone/N = user
+			if(istype(src, /obj/machinery/door/airlock) && istype(N) && GLOB.nanodroneController)
+				GLOB.nanodroneController.add_carried_happiness(N, -5, "opening airlock")
 			open()
 		else
 			if(HAS_TRAIT(src, TRAIT_CMAGGED) && !user.can_advanced_admin_interact())

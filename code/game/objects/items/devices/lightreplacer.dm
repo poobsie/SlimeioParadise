@@ -192,10 +192,15 @@
 		if(CanUse(U))
 			if(!Use(U))
 				return
+			var/old_status = target.status
 			if(target.status != LIGHT_EMPTY)
 				AddShards(1, U)
 				target.status = LIGHT_EMPTY
 			target.fix(U, src, emagged)
+			if(old_status != LIGHT_OK && target.status == LIGHT_OK)
+				var/mob/living/silicon/robot/drone/nanodrone/N = U
+				if(istype(N) && GLOB.nanodroneController)
+					GLOB.nanodroneController.add_carried_happiness(N, 2, "light replacement")
 
 		else
 			to_chat(U, "[src]'s refill light blinks red.")

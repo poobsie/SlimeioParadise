@@ -284,6 +284,12 @@
 	build_path = /obj/machinery/computer/drone_control
 	origin_tech = "programming=3"
 
+/obj/item/circuitboard/nanodrone_hub
+	board_name = "Nanodrone Hub"
+	icon_state = "engineering"
+	build_path = /obj/machinery/nanodrone_hub
+	origin_tech = "programming=2"
+
 /obj/item/circuitboard/cloning
 	board_name = "Cloning Machine Console"
 	icon_state = "medical"

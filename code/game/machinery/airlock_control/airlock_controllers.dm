@@ -86,7 +86,7 @@
 	else
 		icon_state = "airlock_control_off"
 
-/obj/machinery/airlock_controller/proc/handle_button(button_mode)
+/obj/machinery/airlock_controller/proc/handle_button(button_mode, mob/user)
 	// dm please give me abstracts I beg
 	CRASH("handle_button() not overridden for [type]")
 
@@ -108,19 +108,19 @@
 			begin_cycle_in()
 
 		if("cycle_ext_door")
-			cycleDoors(TARGET_OUTOPEN)
+			cycleDoors(TARGET_OUTOPEN, usr)
 
 		if("cycle_int_door")
-			cycleDoors(TARGET_INOPEN)
+			cycleDoors(TARGET_INOPEN, usr)
 
 		if("abort")
 			stop_cycling()
 
 		if("force_ext")
-			toggleDoors(exterior_doors, "toggle")
+			toggleDoors(exterior_doors, "toggle", usr)
 
 		if("force_int")
-			toggleDoors(interior_doors, "toggle")
+			toggleDoors(interior_doors, "toggle", usr)
 
 	return TRUE
 
@@ -270,14 +270,14 @@
 
 
 //this is called to set the appropriate door state at the end of a cycling process, or for the exterior buttons
-/obj/machinery/airlock_controller/proc/cycleDoors(target)
+/obj/machinery/airlock_controller/proc/cycleDoors(target, mob/user)
 	switch(target)
 		if(TARGET_OUTOPEN)
-			toggleDoors(interior_doors, "close")
-			toggleDoors(exterior_doors, "open")
+			toggleDoors(interior_doors, "close", user)
+			toggleDoors(exterior_doors, "open", user)
 		if(TARGET_INOPEN)
-			toggleDoors(interior_doors, "open")
-			toggleDoors(exterior_doors, "close")
+			toggleDoors(interior_doors, "open", user)
+			toggleDoors(exterior_doors, "close", user)
 		if(TARGET_NONE)
 			signalDoors(interior_doors, "unlock")
 			signalDoors(exterior_doors, "unlock")
@@ -293,7 +293,7 @@ Only sends a command if it is needed, i.e. if the door is
 already open, passing an open command to this proc will not
 send an additional command to open the door again.
 ----------------------------------------------------------*/
-/obj/machinery/airlock_controller/proc/toggleDoors(list/doors, command)
+/obj/machinery/airlock_controller/proc/toggleDoors(list/doors, command, mob/user)
 	var/doorCommand = null
 
 	// Cache this. it will be expensive otherwise.
@@ -327,6 +327,32 @@ send an additional command to open the door again.
 				doorCommand = "lock"
 
 	if(doorCommand)
+		var/mob/living/silicon/robot/drone/nanodrone/N = user
+		if(istype(N) && GLOB.nanodroneController)
+			var/penalty = 0
+			for(var/obj/machinery/door/airlock/A as anything in airlocks)
+				switch(doorCommand)
+					if("open")
+						if(A.density)
+							penalty -= 5
+					if("secure_open")
+						if(A.locked)
+							penalty -= 5 // unbolt
+						if(A.density)
+							penalty -= 5 // open
+						penalty -= 5 // bolt
+					if("lock")
+						if(!A.locked)
+							penalty -= 5
+					if("unlock")
+						if(A.locked)
+							penalty -= 5
+					if("secure_close")
+						if(A.locked)
+							penalty -= 5 // unbolt
+						penalty -= 5 // bolt
+			if(penalty)
+				GLOB.nanodroneController.add_carried_happiness(N, penalty, "airlock controls")
 		signalDoors(doors, doorCommand)
 
 
@@ -362,12 +388,12 @@ send an additional command to open the door again.
 
 	return data
 
-/obj/machinery/airlock_controller/access_controller/handle_button(button_mode)
+/obj/machinery/airlock_controller/access_controller/handle_button(button_mode, mob/user)
 	switch(button_mode)
 		if(MODE_INTERIOR)
-			cycleDoors(TARGET_INOPEN)
+			cycleDoors(TARGET_INOPEN, user)
 		if(MODE_EXTERIOR)
-			cycleDoors(TARGET_OUTOPEN)
+			cycleDoors(TARGET_OUTOPEN, user)
 
 /* =============================== AIR CYCLER - Ensures internal pressure matches (just about) the void or the normal atmosphere */
 /obj/machinery/airlock_controller/air_cycler/link_all_items()
@@ -402,7 +428,7 @@ send an additional command to open the door again.
 
 	return data
 
-/obj/machinery/airlock_controller/air_cycler/handle_button(button_mode)
+/obj/machinery/airlock_controller/air_cycler/handle_button(button_mode, mob/user)
 	switch(button_mode)
 		if(MODE_INTERIOR)
 			begin_cycle_in()

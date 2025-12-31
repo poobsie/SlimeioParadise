@@ -46,6 +46,13 @@
 /turf/simulated/floor/indestructible/try_replace_tile(obj/item/stack/tile/T, mob/user, params)
 	return
 
+/turf/simulated/floor/indestructible/invisible
+	name = "invisible floor"
+	desc = "An invisible floor tile."
+	icon = 'icons/turf/floors/plating.dmi'
+	icon_state = "plating"
+	invisibility = INVISIBILITY_ABSTRACT
+
 /turf/simulated/floor/indestructible/airless
 	oxygen = 0
 	nitrogen = 0

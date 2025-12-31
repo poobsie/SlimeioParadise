@@ -43,6 +43,10 @@
 /area/centcom/holding
 	name = "\improper Holding Facility"
 
+/area/centcom/nanodrone_hub
+	name = "\improper Nanodrone Hub"
+	icon_state = "centcom"
+
 /area/centcom/bathroom
 	name = "\improper Centcom Emergency Shuttle Bathrooms"
 

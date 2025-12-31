@@ -17,6 +17,12 @@
 /turf/simulated/floor/bluegrid
 	icon_state = "bcircuit"
 
+/turf/simulated/floor/nanodrone
+	name = "nanodrone floor"
+	desc = "A clean, decorative circuit-pattern floor used in Nanotoys nanodrone facilities."
+	icon_state = "bcircuit"
+	baseturf = /turf/simulated/floor/nanodrone
+
 /turf/simulated/floor/bluegrid/telecomms
 	nitrogen = 100
 	oxygen = 0

@@ -59,7 +59,7 @@ GLOBAL_LIST_EMPTY(all_airlock_access_buttons)
 		to_chat(user, SPAN_WARNING("Access denied."))
 		return
 
-	C.handle_button(assigned_command)
+	C.handle_button(assigned_command, user)
 	flick("access_button_cycle", src)
 
 /obj/machinery/access_button/proc/setup(obj/machinery/airlock_controller/C, mode)

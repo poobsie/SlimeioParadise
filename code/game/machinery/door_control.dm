@@ -72,6 +72,9 @@
 			if(D.id_tag == id)
 				if(specialfunctions & OPEN)
 					if(D.density)
+						var/mob/living/silicon/robot/drone/nanodrone/N = user
+						if(istype(N) && GLOB.nanodroneController)
+							GLOB.nanodroneController.add_carried_happiness(N, -5, "opening airlock")
 						spawn(0)
 							D.open()
 							return
@@ -83,7 +86,10 @@
 					if(specialfunctions & IDSCAN)
 						D.aiDisabledIdScanner = 1
 					if(specialfunctions & BOLTS)
-						D.lock()
+						if(D.lock())
+							var/mob/living/silicon/robot/drone/nanodrone/N = user
+							if(istype(N) && GLOB.nanodroneController)
+								GLOB.nanodroneController.add_carried_happiness(N, -5, "bolting airlock")
 					if(specialfunctions & SHOCK)
 						D.electrify(-1)
 					if(specialfunctions & SAFE)
@@ -92,7 +98,10 @@
 					if(specialfunctions & IDSCAN)
 						D.aiDisabledIdScanner = 0
 					if(specialfunctions & BOLTS)
-						D.unlock()
+						if(D.unlock())
+							var/mob/living/silicon/robot/drone/nanodrone/N = user
+							if(istype(N) && GLOB.nanodroneController)
+								GLOB.nanodroneController.add_carried_happiness(N, -5, "unbolting airlock")
 					if(specialfunctions & SHOCK)
 						D.electrify(0)
 					if(specialfunctions & SAFE)

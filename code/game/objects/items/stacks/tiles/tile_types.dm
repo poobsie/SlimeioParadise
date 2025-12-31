@@ -50,6 +50,10 @@
 	turf_type = /turf/simulated/floor/grass
 	resistance_flags = FLAMMABLE
 
+/obj/item/stack/tile/grass/cyborg
+	energy_type = /datum/robot_storage/energy/metal_tile
+	is_cyborg = TRUE
+
 //Wood
 /obj/item/stack/tile/wood
 	name = "wood floor tiles"

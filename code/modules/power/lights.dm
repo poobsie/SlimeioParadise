@@ -667,6 +667,9 @@
 
 			user.visible_message(SPAN_DANGER("[user] smashed the light!"), SPAN_DANGER("You hit the light, and it smashes!"), \
 			SPAN_DANGER("You hear the tinkle of breaking glass."))
+			var/mob/living/silicon/robot/drone/nanodrone/N = user
+			if(istype(N) && GLOB.nanodroneController)
+				GLOB.nanodroneController.add_carried_happiness(N, -20, "breaking light")
 			if(on && (used.flags & CONDUCT))
 				if(prob(12))
 					electrocute_mob(user, get_area(src), src, 0.3, TRUE)

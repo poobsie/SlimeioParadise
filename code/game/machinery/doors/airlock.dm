@@ -959,6 +959,9 @@ GLOBAL_LIST_EMPTY(airlock_emissive_underlays)
 		to_chat(user, SPAN_WARNING("The door bolts are down!"))
 		return FALSE
 	else if(density)
+		var/mob/living/silicon/robot/drone/nanodrone/N = user
+		if(istype(N) && GLOB.nanodroneController)
+			GLOB.nanodroneController.add_carried_happiness(N, -5, "opening airlock")
 		return open()
 	else
 		return close()
@@ -980,10 +983,16 @@ GLOBAL_LIST_EMPTY(airlock_emissive_underlays)
 		return
 
 	if(unlock()) // Trying to unbolt
+		var/mob/living/silicon/robot/drone/nanodrone/N = user
+		if(istype(N) && GLOB.nanodroneController)
+			GLOB.nanodroneController.add_carried_happiness(N, -5, "unbolting airlock")
 		to_chat(user, SPAN_NOTICE("The door bolts have been raised."))
 		return
 
 	if(lock()) // Trying to bolt
+		var/mob/living/silicon/robot/drone/nanodrone/N = user
+		if(istype(N) && GLOB.nanodroneController)
+			GLOB.nanodroneController.add_carried_happiness(N, -5, "bolting airlock")
 		to_chat(user, SPAN_NOTICE("The door bolts have been dropped."))
 		user.create_log(MISC_LOG, "Bolted", src)
 		add_hiddenprint(user)

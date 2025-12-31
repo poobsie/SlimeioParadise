@@ -140,12 +140,16 @@
 		display_roundstart_logout_report()
 
 	INVOKE_ASYNC(src, PROC_REF(set_mode_in_db)) // Async query), dont bother slowing roundstart
+	if(GLOB.nanodroneController)
+		GLOB.nanodroneController.generate_roundstart_goals(num_players_started())
 
 	generate_station_goals()
 	generate_station_trait_report()
 
 	GLOB.start_state = new /datum/station_state()
 	GLOB.start_state.count()
+	if(GLOB.nanodroneController)
+		GLOB.nanodroneController.initialize_roundstart_station_baselines()
 
 	for(var/datum/mind/flayer as anything in pre_mindflayers) //Mindflayers need to be all the way out here since they could come from most gamemodes
 		flayer.make_mind_flayer()

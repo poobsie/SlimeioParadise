@@ -483,4 +483,406 @@
 	notransform = istype(new_pathfind) ? TRUE : FALSE // prevent them from moving themselves while pathfinding.
 	update_icons()
 
+
+// ==============================
+// Nanodrones (Nanotoys Presents)
+// ==============================
+
+#define NANODRONE_UPGRADE_GARDENING (1<<0)
+#define NANODRONE_UPGRADE_CLEANER_SPRAYER (1<<1)
+
+// Costs are in personal nanodrone "points" (deposited Happiness minus spent).
+#define NANODRONE_UPGRADE_COST_GARDENING 50
+#define NANODRONE_UPGRADE_COST_CLEANER_SPRAYER 25
+
+GLOBAL_DATUM_INIT(nanodroneController, /datum/nanodrone_controller, new())
+
+/atom/movable/screen/nanodrone_happiness_display
+	name = "0 / ?"
+	mouse_opacity = 1
+
+/atom/movable/screen/nanodrone_happiness_display/proc/update_tooltip()
+	var/global_current = GLOB.nanodroneController ? GLOB.nanodroneController.global_happiness : 0
+	var/global_goal_text = (GLOB.nanodroneController && GLOB.nanodroneController.target_happiness_threshold) ? "[GLOB.nanodroneController.target_happiness_threshold]" : "?"
+	name = "[global_current] / [global_goal_text]"
+
+/atom/movable/screen/nanodrone_happiness_display/MouseEntered(location, control, params)
+	. = ..()
+	update_tooltip()
+
+/datum/nanodrone_controller
+	/// Happiness that has been successfully banked by Nanodrones.
+	var/global_happiness = 0
+	/// Roundstart crew count used to generate goals.
+	var/roundstart_crew_count = 0
+	/// Target happiness threshold for the shift.
+	var/target_happiness_threshold = 0
+	/// Baseline station integrity percent at roundstart (relative to the roundstart station state).
+	var/baseline_station_integrity_percent = null
+	/// Baseline station cleanliness percent at roundstart (absolute).
+	var/baseline_station_cleanliness_percent = null
+	/// Baseline number of dirty turfs at roundstart (used for "cleanup progress").
+	var/baseline_station_dirty_turfs = null
+	/// Baseline number of counted (non-space) station turfs.
+	var/baseline_station_counted_turfs = null
+	/// Cache timestamp for expensive station metric recomputes.
+	var/last_station_metrics_update = 0
+	/// Cached station integrity percent.
+	var/cached_station_integrity_percent = null
+	/// Cached station cleanliness percent.
+	var/cached_station_cleanliness_percent = null
+	/// Cached dirty turf count.
+	var/cached_station_dirty_turfs = null
+	/// Cached counted turf count.
+	var/cached_station_counted_turfs = null
+
+/datum/nanodrone_controller/proc/generate_roundstart_goals(crew_count)
+	roundstart_crew_count = max(crew_count, 0)
+	// Baseline: 1000 minimum. Add +50 for each roundstart crew above 20.
+	target_happiness_threshold = 1000 + (max(roundstart_crew_count - 20, 0) * 50)
+	return target_happiness_threshold
+
+/datum/nanodrone_controller/proc/initialize_roundstart_station_baselines()
+	// Ensure we have an initial metric snapshot for drones to compare against.
+	update_station_metrics(TRUE)
+	baseline_station_integrity_percent = cached_station_integrity_percent
+	baseline_station_cleanliness_percent = cached_station_cleanliness_percent
+	baseline_station_dirty_turfs = cached_station_dirty_turfs
+	baseline_station_counted_turfs = cached_station_counted_turfs
+
+/datum/nanodrone_controller/proc/update_station_metrics(force = FALSE)
+	// These scans are expensive; cache for a short period.
+	if(!force && world.time < (last_station_metrics_update + 300))
+		return
+	last_station_metrics_update = world.time
+
+	var/datum/station_state/current_state = new /datum/station_state()
+	var/station_zlevel = level_name_to_num(MAIN_STATION)
+	var/dirty_turfs = 0
+	var/counted_turfs = 0
+
+	for(var/turf/T in block(1, 1, station_zlevel, world.maxx, world.maxy, station_zlevel))
+		if(istype(T, /turf/space))
+			continue
+		counted_turfs++
+
+		// ----- Integrity counting (mirrors /datum/station_state/count() without logging) -----
+		if(istype(T, /turf/simulated/floor))
+			var/turf/simulated/floor/T2 = T
+			current_state.floor += (T2.burnt ? 1 : 12)
+		if(istype(T, /turf/simulated/wall))
+			var/turf/simulated/wall/W = T
+			current_state.wall += (W.intact ? 2 : 1)
+		if(istype(T, /turf/simulated/wall/r_wall))
+			var/turf/simulated/wall/r_wall/R = T
+			current_state.r_wall += (R.intact ? 2 : 1)
+
+		for(var/obj/O in T.contents)
+			if(istype(O, /obj/structure/window))
+				current_state.window += 1
+			else if(istype(O, /obj/structure/grille))
+				var/obj/structure/grille/GR = O
+				if(!GR.broken)
+					current_state.grille += 1
+			else if(isairlock(O))
+				current_state.door += 1
+			else if(istype(O, /obj/machinery))
+				current_state.mach += 1
+
+		// ----- Cleanliness counting -----
+		if(T.blood_DNA)
+			dirty_turfs++
+			continue
+		if(locate(/obj/effect/decal/cleanable) in T)
+			dirty_turfs++
+			continue
+
+	cached_station_dirty_turfs = dirty_turfs
+	cached_station_counted_turfs = counted_turfs
+	if(counted_turfs <= 0)
+		cached_station_cleanliness_percent = 100
+	else
+		cached_station_cleanliness_percent = clamp(round(((counted_turfs - dirty_turfs) / counted_turfs) * 100, 0.1), 0, 100)
+
+	// ----- Integrity (relative to roundstart station state) -----
+	var/integrity_percent = 100
+	if(GLOB.start_state)
+		integrity_percent = clamp(round(GLOB.start_state.score(current_state) * 100, 0.1), 0, 100)
+	cached_station_integrity_percent = integrity_percent
+
+/datum/nanodrone_controller/proc/get_station_integrity_percent()
+	update_station_metrics()
+	return (isnull(cached_station_integrity_percent) ? 100 : cached_station_integrity_percent)
+
+/datum/nanodrone_controller/proc/get_station_cleanliness_percent()
+	update_station_metrics()
+	return (isnull(cached_station_cleanliness_percent) ? 100 : cached_station_cleanliness_percent)
+
+/datum/nanodrone_controller/proc/get_station_cleanliness_progress_percent()
+	// "Cleanup progress" relative to roundstart dirt: 0% at roundstart, 100% when all baseline mess is cleaned.
+	update_station_metrics()
+	if(isnull(baseline_station_dirty_turfs) || baseline_station_dirty_turfs <= 0)
+		return 0
+	var/current_dirty = max(cached_station_dirty_turfs, 0)
+	return clamp(round(((baseline_station_dirty_turfs - current_dirty) / baseline_station_dirty_turfs) * 100, 0.1), 0, 100)
+
+/datum/nanodrone_controller/proc/add_carried_happiness(mob/living/silicon/robot/drone/nanodrone/N, amount, reason)
+	if(!N || QDELETED(N) || amount == 0)
+		return FALSE
+	N.carried_happiness = clamp(N.carried_happiness + amount, 0, N.max_carry_happiness)
+	N.update_happiness_hud()
+	return TRUE
+
+/datum/nanodrone_controller/proc/deposit_happiness(mob/living/silicon/robot/drone/nanodrone/N)
+	if(!N || QDELETED(N))
+		return 0
+	var/amount = max(N.carried_happiness, 0)
+	if(!amount)
+		return 0
+	global_happiness += amount
+	N.carried_happiness = 0
+	N.update_happiness_hud()
+	return amount
+
+/// Drain from carried happiness first, then global happiness if needed.
+/datum/nanodrone_controller/proc/drain_happiness(mob/living/silicon/robot/drone/nanodrone/N, amount, reason)
+	if(!N || QDELETED(N) || amount <= 0)
+		return FALSE
+	var/to_drain = amount
+	if(N.carried_happiness > 0)
+		var/from_carried = min(N.carried_happiness, to_drain)
+		N.carried_happiness -= from_carried
+		to_drain -= from_carried
+	if(to_drain > 0)
+		global_happiness = max(global_happiness - to_drain, 0)
+	N.update_happiness_hud()
+	return TRUE
+
+
+/mob/living/silicon/robot/drone/nanodrone
+	name = "nanodrone"
+	real_name = "nanodrone"
+	flavor_text = "It's a tiny little Nanotoys nanodrone, built to help the station and make people happy."
+	icon = 'icons/mob/nanodrone.dmi'
+	icon_state = "nanodrone"
+
+	/// Happiness currently carried by this Nanodrone (lost on destruction).
+	var/carried_happiness = 0
+	/// Maximum happiness this Nanodrone can carry before banking.
+	var/max_carry_happiness = 100
+	/// Total Happiness deposited by this nanodrone into the communal reservoir.
+	var/happiness_points_deposited = 0
+	/// Total points spent by this nanodrone on upgrades.
+	var/happiness_points_spent = 0
+	/// Bitfield of purchased nanodrone upgrades.
+	var/nanodrone_upgrades = 0
+	/// Who we're currently doing a deed for (placeholder until deed datums exist).
+	var/mob/living/active_deed_issuer
+	/// Which hub we should return to when leaving the CentCom hub room.
+	var/obj/machinery/nanodrone_hub/return_hub
+	/// Simple debounce for hub teleports to prevent immediate re-triggers on arrival/return.
+	var/nanodrone_hub_cooldown_until = 0
+
+/mob/living/silicon/robot/drone/nanodrone/proc/get_happiness_points_balance()
+	return max(happiness_points_deposited - happiness_points_spent, 0)
+
+/mob/living/silicon/robot/drone/nanodrone/proc/has_nanodrone_upgrade(flag)
+	return (nanodrone_upgrades & flag)
+
+/mob/living/silicon/robot/drone/nanodrone/proc/can_afford_nanodrone_upgrade(cost)
+	return (get_happiness_points_balance() >= cost)
+
+/mob/living/silicon/robot/drone/nanodrone/proc/purchase_nanodrone_upgrade(flag, cost)
+	if(has_nanodrone_upgrade(flag))
+		return FALSE
+	if(!can_afford_nanodrone_upgrade(cost))
+		return FALSE
+	happiness_points_spent += cost
+	nanodrone_upgrades |= flag
+	return TRUE
+
+/mob/living/silicon/robot/drone/nanodrone/proc/ensure_module_item(item_type)
+	if(!module)
+		return null
+	var/obj/item/existing = locate(item_type) in module
+	if(existing)
+		return existing
+	var/obj/item/new_item = new item_type(module)
+	module.add_module(new_item, FALSE)
+	if(hud_used)
+		hud_used.update_robot_modules_display()
+	return new_item
+
+/mob/living/silicon/robot/drone/nanodrone/proc/grant_gardening_kit()
+	ensure_module_item(/obj/item/stack/tile/grass/cyborg)
+	ensure_module_item(/obj/item/nanodrone_seed_pouch)
+	ensure_module_item(/obj/item/nanodrone_watering_can)
+	ensure_module_item(/obj/item/nanodrone_flower_basket)
+
+/mob/living/silicon/robot/drone/nanodrone/proc/upgrade_cleaner_sprayer()
+	if(!module)
+		return FALSE
+
+	var/obj/item/reagent_containers/spray/cleaner/drone/upgraded/already = locate(/obj/item/reagent_containers/spray/cleaner/drone/upgraded) in module
+	if(already)
+		return TRUE
+
+	var/obj/item/reagent_containers/spray/cleaner/drone/S = locate(/obj/item/reagent_containers/spray/cleaner/drone) in module
+	if(!S)
+		S = new /obj/item/reagent_containers/spray/cleaner/drone(module)
+		module.add_module(S, FALSE)
+		module.special_rechargables += S
+
+	var/obj/item/reagent_containers/spray/cleaner/drone/upgraded/U = new /obj/item/reagent_containers/spray/cleaner/drone/upgraded(module)
+	module.add_module(U, FALSE)
+	module.special_rechargables += U
+
+	if(S.reagents && U.reagents)
+		S.reagents.trans_to(U, S.reagents.total_volume)
+
+	if(S == get_active_hand())
+		uneq_module(S)
+	if(S == get_inactive_hand())
+		uneq_module(S)
+
+	module.special_rechargables -= S
+	module.modules -= S
+	qdel(S)
+
+	if(hud_used)
+		hud_used.update_robot_modules_display()
+	return TRUE
+
+/mob/living/silicon/robot/drone/nanodrone/proc/update_happiness_hud()
+	if(!client || !hud_used)
+		return
+	var/datum/hud/hud = hud_used
+	if(!hud.nanodrone_happiness_display)
+		hud.nanodrone_happiness_display = new /atom/movable/screen/nanodrone_happiness_display()
+		hud.nanodrone_happiness_display.icon_state = "blood_display"
+		hud.nanodrone_happiness_display.screen_loc = "WEST:6,CENTER-1:15"
+		hud.static_inventory += hud.nanodrone_happiness_display
+		hud.show_hud(hud.hud_version)
+
+	var/atom/movable/screen/nanodrone_happiness_display/happiness_display = hud.nanodrone_happiness_display
+	happiness_display.update_tooltip()
+
+	hud.nanodrone_happiness_display.maptext = "<div align='center' valign='middle' style='position:relative; top:0px; left:6px'><font face='Small Fonts' color=[COLOR_BLUE_LIGHT]>[carried_happiness]</font></div>"
+
+/mob/living/silicon/robot/drone/nanodrone/proc/remove_happiness_hud()
+	hud_used?.remove_nanodrone_hud()
+
+/mob/living/silicon/robot/drone/nanodrone/Login()
+	. = ..()
+	update_happiness_hud()
+
+/mob/living/silicon/robot/drone/nanodrone/Destroy()
+	remove_happiness_hud()
+	return ..()
+
+/mob/living/silicon/robot/drone/nanodrone/init(alien = FALSE, mob/living/silicon/ai/ai_to_sync_to = null)
+	laws = new /datum/ai_laws/nanodrone_creed()
+	set_connected_ai(null)
+
+	aiCamera = new /obj/item/camera/siliconcam/drone_camera(src)
+	additional_law_channels["Drone"] = ";"
+	ADD_TRAIT(src, TRAIT_RESPAWNABLE, UNIQUE_TRAIT_SOURCE(src))
+
+	playsound(loc, 'sound/machines/twobeep.ogg', 50)
+
+/mob/living/silicon/robot/drone/nanodrone/full_law_reset()
+	clear_supplied_laws(TRUE)
+	clear_inherent_laws(TRUE)
+	clear_ion_laws(TRUE)
+	laws = new /datum/ai_laws/nanodrone_creed
+
+/mob/living/silicon/robot/drone/nanodrone/get_default_name()
+	return "nanodrone ([rand(100, 999)])"
+
+/mob/living/silicon/robot/drone/nanodrone/transfer_personality(client/player)
+	if(!player)
+		return
+
+	ckey = player.ckey
+
+	to_chat(src, "<b>Systems rebooted</b>. Loading Nanotoys nanodrone collective profile... <b>loaded</b>.")
+	full_law_reset()
+	to_chat(src, "<br><b>You are a Nanodrone</b>, a tiny helper that earns and banks Happiness for the collective.")
+	to_chat(src, "Use <b>:d</b> to talk to other drones, and <b>say</b> to speak in a language only your fellows understand.")
+	to_chat(src, "Your objectives and more systems will be added as Nanodrones are implemented.")
+	update_happiness_hud()
+
+/mob/living/silicon/robot/drone/nanodrone/death(gibbed)
+	carried_happiness = 0
+	return ..(gibbed)
+
+/mob/living/silicon/robot/drone/nanodrone/proc/all_done_finish_effects()
+	if(QDELETED(src) || stat != CONSCIOUS)
+		return
+	var/turf/T = get_turf(src)
+	if(!T)
+		return
+
+	playsound(T, 'sound/effects/confetti_partywhistle.ogg', 35, 1)
+
+	// Spawn a small confetti burst originating from the drone.
+	var/spawner_type = /obj/effect/decal/cleanable/confetti
+	var/volume = 12
+	var/range = 2
+	for(var/i in 1 to volume)
+		var/atom/movable/x = new spawner_type(T)
+		for(var/j in 1 to rand(1, range))
+			step(x, pick(NORTH, SOUTH, EAST, WEST))
+
+/mob/living/silicon/robot/drone/nanodrone/emote(emote_key, type_override = null, message = null, intentional = FALSE, force_silence = FALSE)
+	// Provide Nanodrone-specific yes/no presentation without relying on global emote ordering.
+	var/key = lowertext(emote_key)
+	var/custom_param_offset = findtext(key, EMOTE_PARAM_SEPARATOR, 1, null)
+	if(custom_param_offset)
+		key = copytext(key, 1, custom_param_offset)
+
+	switch(key)
+		if("yes")
+			if(stat != CONSCIOUS)
+				return TRUE
+			visible_message(SPAN_EMOTE("<b>[src]</b> bobs up and down affirmatively."))
+			playsound(loc, 'sound/machines/synth_yes.ogg', 50)
+			return TRUE
+		if("no")
+			if(stat != CONSCIOUS)
+				return TRUE
+			visible_message(SPAN_EMOTE("<b>[src]</b> waggles side-to-side negatively."))
+			playsound(loc, 'sound/machines/synth_no.ogg', 50)
+			return TRUE
+
+	return ..()
+
+
+/datum/emote/living/silicon/nanodrone_done
+	key = "done"
+	key_third_person = "done"
+	message = "does an all-done dance!"
+	emote_type = EMOTE_VISIBLE | EMOTE_AUDIBLE
+	mob_type_allowed_typecache = list(/mob/living/silicon/robot/drone/nanodrone)
+	cooldown = 5 SECONDS
+
+/datum/emote/living/silicon/nanodrone_done/run_emote(mob/user, emote_arg, type_override, intentional)
+	var/mob/living/silicon/robot/drone/nanodrone/N = user
+	if(!istype(N))
+		return TRUE
+	if(N.stat != CONSCIOUS)
+		return TRUE
+	if(!N.active_deed_issuer || QDELETED(N.active_deed_issuer) || !(N.active_deed_issuer in view(N)))
+		to_chat(N, SPAN_WARNING("You can only do the all-done dance when the person you're helping can see you."))
+		return TRUE
+	. = ..()
+
+	// Do a spin emote as part of the dance.
+	if(!N.emote("spin", intentional = TRUE, force_silence = TRUE))
+		N.spin(20, 1)
+
+	// When the spin finishes, play the sound at half volume and spawn confetti.
+	addtimer(CALLBACK(N, TYPE_PROC_REF(/mob/living/silicon/robot/drone/nanodrone, all_done_finish_effects)), 2 SECONDS)
+	return TRUE
+
 #undef EMAG_TIMER

@@ -24,6 +24,7 @@
 	var/atom/movable/screen/blobpwrdisplay
 	var/atom/movable/screen/blobhealthdisplay
 	var/atom/movable/screen/vampire_blood_display
+	var/atom/movable/screen/nanodrone_happiness_display
 	var/atom/movable/screen/alien_plasma_display
 	var/atom/movable/screen/nightvisionicon
 	var/atom/movable/screen/action_intent
@@ -144,6 +145,7 @@
 	blobpwrdisplay = null
 	alien_plasma_display = null
 	vampire_blood_display = null
+	nanodrone_happiness_display = null
 	nightvisionicon = null
 
 	QDEL_LIST_ASSOC_VAL(plane_masters)
@@ -292,3 +294,7 @@
 /datum/hud/proc/remove_vampire_hud()
 	static_inventory -= vampire_blood_display
 	QDEL_NULL(vampire_blood_display)
+
+/datum/hud/proc/remove_nanodrone_hud()
+	static_inventory -= nanodrone_happiness_display
+	QDEL_NULL(nanodrone_happiness_display)

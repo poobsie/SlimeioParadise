@@ -67,6 +67,11 @@
 			qdel(C)
 		clean_blood()
 		SEND_SIGNAL(src, COMSIG_COMPONENT_CLEAN_ACT)
+		// Nanodrones gain Happiness from cleaning messes: +1 per cleaned tile.
+		// Only award when the cleaned target is a turf and it was actually dirty, to prevent farming.
+		var/mob/living/silicon/robot/drone/nanodrone/N = user
+		if(N && is_dirty && isturf(src) && GLOB.nanodroneController)
+			GLOB.nanodroneController.add_carried_happiness(N, 1, "cleaning")
 		return TRUE
 
 /atom/proc/can_clean() //For determining if a cleaning object can actually remove decals

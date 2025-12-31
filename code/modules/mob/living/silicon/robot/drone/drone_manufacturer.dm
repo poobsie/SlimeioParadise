@@ -76,7 +76,7 @@
 	flick("h_lathe_leave",src)
 
 	time_last_drone = world.time
-	var/mob/living/silicon/robot/drone/new_drone = new(get_turf(src))
+	var/mob/living/silicon/robot/drone/new_drone = new /mob/living/silicon/robot/drone/nanodrone(get_turf(src))
 	new_drone.transfer_personality(player)
 
 	drone_progress = 0
@@ -100,7 +100,7 @@
 /mob/dead/verb/join_as_drone()
 	set category = "Ghost"
 	set name = "Join As Drone"
-	set desc = "If there is a powered, enabled fabricator in the game world with a prepared chassis, join as a maintenance drone."
+	set desc = "If there is a powered, enabled fabricator in the game world with a prepared chassis, join as a Nanodrone."
 
 	if(stat != DEAD)
 		return

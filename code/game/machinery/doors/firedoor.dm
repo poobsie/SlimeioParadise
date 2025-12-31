@@ -122,6 +122,9 @@
 		user.visible_message(
 			SPAN_NOTICE("[user] opens [src]."),
 			SPAN_NOTICE("You open [src]."))
+		var/mob/living/silicon/robot/drone/nanodrone/N = user
+		if(istype(N) && GLOB.nanodroneController)
+			GLOB.nanodroneController.add_carried_happiness(N, -5, "opening firelock")
 		open()
 
 /obj/machinery/door/firedoor/item_interaction(mob/living/user, obj/item/used, list/modifiers)
@@ -197,6 +200,9 @@
 	if(welded || operating)
 		return
 	if(density)
+		var/mob/living/silicon/robot/drone/nanodrone/N = user
+		if(istype(N) && GLOB.nanodroneController)
+			GLOB.nanodroneController.add_carried_happiness(N, -5, "opening firelock")
 		open()
 	else
 		close()

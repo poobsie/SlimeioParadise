@@ -73,6 +73,15 @@
 /turf/simulated/wall/indestructible/boss/see_through
 	opacity = FALSE
 
+/turf/simulated/wall/indestructible/invisible
+	name = "invisible wall"
+	desc = "An invisible barrier."
+	icon = 'icons/turf/walls/wall.dmi'
+	icon_state = "wall-0"
+	base_icon_state = "wall"
+	invisibility = INVISIBILITY_ABSTRACT
+	opacity = FALSE
+
 /turf/simulated/wall/indestructible/hierophant
 	desc = "A wall made out of a strange metal. The squares on it pulse in a predictable pattern."
 	icon = 'icons/turf/walls/hierophant_wall.dmi'

@@ -81,12 +81,26 @@
 /turf/simulated/floor/grass/get_broken_states()
 	return list("damaged")
 
+/turf/simulated/floor/grass/ChangeTurf(turf/simulated/floor/T, defer_change = FALSE, keep_icon = TRUE, ignore_air = FALSE, copy_existing_baseturf = TRUE)
+	for(var/obj/effect/nanodrone_flower/F in src)
+		qdel(F)
+	return ..()
+
 /turf/simulated/floor/grass/item_interaction(mob/living/user, obj/item/used, list/modifiers)
 	if(istype(used, /obj/item/shovel))
 		to_chat(user, SPAN_NOTICE("You shovel the grass."))
 		playsound(src, 'sound/effects/shovel_dig.ogg', 50, 1)
 		remove_tile()
 		return ITEM_INTERACT_COMPLETE
+
+	if(istype(used, /obj/item/wirecutters))
+		for(var/obj/effect/nanodrone_flower/F in src)
+			if(F.stage >= 3)
+				F.wirecutter_act(user, used)
+				return ITEM_INTERACT_COMPLETE
+
+	// Let special items (like the nanodrone seed pouch / watering can) handle via after_attack.
+	return ITEM_INTERACT_SKIP_TO_AFTER_ATTACK
 
 /turf/simulated/floor/grass/jungle
 	name = "jungle grass"

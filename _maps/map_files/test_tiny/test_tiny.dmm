@@ -39,6 +39,14 @@
 	},
 /turf/simulated/floor/mineral/titanium/blue,
 /area/shuttle/arrival/station)
+"V" = (
+/obj/machinery/nanodrone_hub,
+/turf/simulated/floor/mineral/titanium/blue,
+/area/shuttle/arrival/station)
+"Y" = (
+/obj/machinery/drone_fabricator,
+/turf/simulated/floor/mineral/titanium/blue,
+/area/shuttle/arrival/station)
 
 (1,1,1) = {"
 a
@@ -32292,7 +32300,7 @@ u
 x
 x
 x
-x
+Y
 x
 x
 x
@@ -32546,7 +32554,7 @@ a
 a
 a
 u
-x
+V
 x
 x
 x

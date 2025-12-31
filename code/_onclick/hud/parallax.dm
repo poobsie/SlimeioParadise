@@ -286,19 +286,57 @@
 	speed = 0.6
 	layer = 1
 
+/atom/movable/screen/parallax_layer/layer_1/update_status(mob/M)
+	var/turf/T = get_turf(M)
+	var/area/A = T?.loc
+	var/desired_icon = initial(icon)
+	if(istype(A, /area/centcom/nanodrone_hub))
+		desired_icon = 'icons/effects/parallax_nanotrasen.dmi'
+
+	if(icon != desired_icon)
+		icon = desired_icon
+		update_o(M?.client?.view)
+
 /atom/movable/screen/parallax_layer/layer_2
 	icon_state = "layer2"
 	layer = 2
+
+/atom/movable/screen/parallax_layer/layer_2/update_status(mob/M)
+	var/turf/T = get_turf(M)
+	var/area/A = T?.loc
+	var/desired_icon = initial(icon)
+	if(istype(A, /area/centcom/nanodrone_hub))
+		desired_icon = 'icons/effects/parallax_nanotrasen.dmi'
+
+	if(icon != desired_icon)
+		icon = desired_icon
+		update_o(M?.client?.view)
 
 /atom/movable/screen/parallax_layer/layer_3
 	icon_state = "layer3"
 	speed = 1.4
 	layer = 3
 
+/atom/movable/screen/parallax_layer/layer_3/update_status(mob/M)
+	var/turf/T = get_turf(M)
+	var/area/A = T?.loc
+	if(istype(A, /area/centcom/nanodrone_hub))
+		invisibility = INVISIBILITY_ABSTRACT
+	else
+		invisibility = 0
+
 /atom/movable/screen/parallax_layer/random
 	blend_mode = BLEND_OVERLAY
 	speed = 3
 	layer = 3
+
+/atom/movable/screen/parallax_layer/random/update_status(mob/M)
+	var/turf/T = get_turf(M)
+	var/area/A = T?.loc
+	if(istype(A, /area/centcom/nanodrone_hub))
+		invisibility = INVISIBILITY_ABSTRACT
+	else
+		invisibility = 0
 
 /atom/movable/screen/parallax_layer/random/space_gas
 	icon_state = "space_gas"
@@ -325,6 +363,9 @@
 
 /atom/movable/screen/parallax_layer/planet/update_status(mob/M)
 	var/turf/T = get_turf(M)
+	if(istype(T?.loc, /area/centcom/nanodrone_hub))
+		invisibility = INVISIBILITY_ABSTRACT
+		return
 	if(is_station_level(T.z))
 		invisibility = 0
 	else

@@ -346,6 +346,9 @@
 		obj_integrity = max_integrity
 		update_nearby_icons()
 		WELDER_REPAIR_SUCCESS_MESSAGE
+		var/mob/living/silicon/robot/drone/nanodrone/N = user
+		if(N && GLOB.nanodroneController)
+			GLOB.nanodroneController.add_carried_happiness(N, 10, "window repair")
 
 /obj/structure/window/proc/check_state(checked_state)
 	if(state == checked_state)

@@ -7,6 +7,8 @@
 	name = "chemicals"
 	icon = 'icons/obj/chempuff.dmi'
 	pass_flags = PASSTABLE | PASSGRILLE
+	/// Mob that created this puff (used for attribution like Nanodrone Happiness).
+	var/mob/living/source_mob
 
 /obj/effect/decal/chempuff/blob_act(obj/structure/blob/B)
 	return
@@ -20,9 +22,21 @@
 /obj/effect/decal/chempuff/proc/check_move(datum/move_loop/source, succeeded)
 	SIGNAL_HANDLER // COMSIG_MOVELOOP_POSTPROCESS
 	var/turf/our_turf = get_turf(src)
+	// Nanodrones gain Happiness from cleaning messes with cleaner spray: +1 per tile cleaned.
+	// Track per-turf: only award when this reaction actually makes the turf "not dirty".
+	var/had_dirty = FALSE
+	if(our_turf)
+		if(our_turf.blood_DNA)
+			had_dirty = TRUE
+		else if(locate(/obj/effect/decal/cleanable) in our_turf)
+			had_dirty = TRUE
 	reagents.reaction(our_turf)
 	for(var/atom/T in our_turf)
 		reagents.reaction(T)
+	if(had_dirty && our_turf && !our_turf.blood_DNA && !(locate(/obj/effect/decal/cleanable) in our_turf))
+		var/mob/living/silicon/robot/drone/nanodrone/N = source_mob
+		if(N && reagents?.has_reagent("cleaner") && GLOB.nanodroneController)
+			GLOB.nanodroneController.add_carried_happiness(N, 1, "cleaning spray")
 
 /obj/effect/decal/snow
 	name = "snow"

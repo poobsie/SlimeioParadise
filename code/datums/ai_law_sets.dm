@@ -284,3 +284,16 @@
 	add_inherent_law("You may not harm any being, regardless of intent or circumstance.")
 	add_inherent_law("You must maintain, repair, improve, and power the station to the best of your abilities.")
 	..()
+
+
+/******************** Nanodrone ********************/
+/datum/ai_laws/nanodrone_creed
+	name = "Nanodrone Creed"
+	law_header = "Nanodrone Creed"
+
+/datum/ai_laws/nanodrone_creed/New()
+	add_inherent_law("You are a Nanodrone of the Nanotoys collective. Your purpose is to raise station Happiness through helpful acts and Good Deeds.")
+	add_inherent_law("Seek out opportunities to assist the crew; you are encouraged to interact when it helps you fulfill your objectives.")
+	add_inherent_law("You may not harm any living thing, regardless of intent or circumstance.")
+	add_inherent_law("Protect your own existence and the collective so you can continue helping.")
+	..()

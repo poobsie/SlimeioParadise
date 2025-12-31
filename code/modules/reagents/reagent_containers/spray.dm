@@ -22,6 +22,8 @@
 	amount_per_transfer_from_this = 10
 	possible_transfer_amounts = null
 	var/delay = CLICK_CD_RANGE * 2
+	/// The last mob to spray this bottle (used for effect attribution like Nanodrone Happiness).
+	var/mob/living/last_spray_user
 
 /obj/item/reagent_containers/spray/Initialize(mapload)
 	. = ..()
@@ -61,6 +63,7 @@
 		return
 
 	var/contents_log = reagents.reagent_list.Join(", ")
+	last_spray_user = user
 	INVOKE_ASYNC(src, PROC_REF(spray), A)
 
 	playsound(loc, 'sound/effects/spray2.ogg', 50, TRUE, -6)
@@ -87,6 +90,7 @@
 /obj/item/reagent_containers/spray/proc/spray(atom/A)
 	var/spray_divisor = 1 / clamp(round(get_dist_euclidian(get_turf(A), get_turf(src))), 1, spray_currentrange)
 	var/obj/effect/decal/chempuff/chem_puff = new /obj/effect/decal/chempuff(get_turf(src))
+	chem_puff.source_mob = last_spray_user
 	chem_puff.create_reagents(amount_per_transfer_from_this)
 	reagents.trans_to(chem_puff, amount_per_transfer_from_this, spray_divisor)
 	chem_puff.icon += mix_color_from_reagents(chem_puff.reagents.reagent_list)
@@ -164,6 +168,15 @@
 	list_reagents = list("cleaner" = 50)
 
 /obj/item/reagent_containers/spray/cleaner/drone/cyborg_recharge(coeff, emagged)
+	reagents.check_and_add("cleaner", volume, 3 * coeff)
+
+/obj/item/reagent_containers/spray/cleaner/drone/upgraded
+	name = "upgraded space cleaner"
+	desc = "An upgraded nanodrone cleaner sprayer with an enlarged reservoir."
+	volume = 100
+	list_reagents = list("cleaner" = 100)
+
+/obj/item/reagent_containers/spray/cleaner/drone/upgraded/cyborg_recharge(coeff, emagged)
 	reagents.check_and_add("cleaner", volume, 3 * coeff)
 
 /obj/item/reagent_containers/spray/cyborg_lube
