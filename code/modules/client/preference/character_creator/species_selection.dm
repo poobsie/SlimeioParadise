@@ -27,15 +27,60 @@
 
 	data["available_species"] = available_species
 
-	// Generate character preview for selected species
-	if(SSatoms.initialized)
-		generate_species_character_preview(user, character)
+	// Species preview is generated asynchronously to avoid blocking UI open.
+	request_species_preview(user)
+	if(species_preview_timestamp && species_preview_species == character.species)
 		data["has_character_preview"] = TRUE
-		data["preview_timestamp"] = world.time
+		data["preview_timestamp"] = species_preview_timestamp
 	else
 		data["has_character_preview"] = FALSE
 
 	return data
+
+/// Requests (async) generation of the species preview image used in the species selection tab.
+/datum/character_creator/proc/request_species_preview(mob/user)
+	if(QDELETED(src) || !user?.client?.prefs?.active_character)
+		return FALSE
+	if(!SSatoms.initialized)
+		return FALSE
+	var/datum/character_save/character = user.client.prefs.active_character
+	var/species = character.species
+
+	// If species changed, invalidate cached preview timestamp.
+	if(species_preview_species != species)
+		species_preview_species = species
+		species_preview_timestamp = 0
+
+	if(species_preview_in_progress)
+		species_preview_dirty = TRUE
+		return TRUE
+	if(species_preview_timestamp)
+		return TRUE
+
+	species_preview_in_progress = TRUE
+	species_preview_dirty = FALSE
+	var/slot_num = character.slot_number
+
+	spawn(0)
+		if(QDELETED(src) || !user?.client?.prefs?.active_character)
+			species_preview_in_progress = FALSE
+			return
+		var/datum/character_save/current_character = user.client.prefs.active_character
+		if(!current_character || current_character.slot_number != slot_num)
+			species_preview_in_progress = FALSE
+			return
+
+		generate_species_character_preview(user, current_character)
+		species_preview_timestamp = world.time
+		species_preview_species = current_character.species
+		species_preview_in_progress = FALSE
+		SStgui.update_uis(src)
+		if(species_preview_dirty)
+			species_preview_dirty = FALSE
+			species_preview_timestamp = 0
+			request_species_preview(user)
+
+	return TRUE
 
 /// Sets the character's species
 /datum/character_creator/proc/set_character_species(mob/user, species_name)

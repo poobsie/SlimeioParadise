@@ -7,6 +7,22 @@
 	var/list/cached_facial_hair_styles
 	var/cached_facial_hair_species
 	var/list/served_resources
+	/// Last successful character preview timestamp used for char_preview_front/side_*.png
+	var/character_preview_timestamp = 0
+	var/character_preview_in_progress = FALSE
+	var/character_preview_dirty = FALSE
+	var/last_preview_slot_number = 0
+	/// Last successful species preview timestamp used for species_char_preview_front_*.png
+	var/species_preview_timestamp = 0
+	var/species_preview_species
+	var/species_preview_in_progress = FALSE
+	var/species_preview_dirty = FALSE
+	/// Background serving of appearance option icons (hair, facial hair, clothing, etc.)
+	var/appearance_resources_in_progress = FALSE
+	var/appearance_resources_dirty = FALSE
+	var/appearance_resources_species
+	/// Whether to show loadout items on the character preview (tracked per-user client-side via TGUI local storage)
+	var/show_loadout_preview = FALSE
 
 /datum/character_creator/ui_state(mob/user)
 	return GLOB.always_state
@@ -16,6 +32,8 @@
 	if(!ui)
 		ui = new(user, src, "CharacterCreator", "Character Creator")
 		ui.open()
+		spawn(0)
+			prime_character_creator_resources(user)
 
 /datum/character_creator/ui_data(mob/user)
 	var/list/data = list()
@@ -194,6 +212,203 @@
 	*/
 
 	return data
+
+/// Kicks off background work to populate sprites without blocking initial UI open.
+/datum/character_creator/proc/prime_character_creator_resources(mob/user)
+	if(QDELETED(src) || !user?.client?.prefs?.active_character)
+		return FALSE
+	// These procs are expected to be non-blocking and/or internally async.
+	request_character_preview(user)
+	request_species_preview(user)
+	request_appearance_resources(user)
+	return TRUE
+
+/// Requests background serving of appearance option icons.
+/datum/character_creator/proc/request_appearance_resources(mob/user)
+	if(QDELETED(src) || !user?.client?.prefs?.active_character)
+		return FALSE
+	if(appearance_resources_in_progress)
+		appearance_resources_dirty = TRUE
+		return TRUE
+	appearance_resources_in_progress = TRUE
+	appearance_resources_dirty = FALSE
+	var/datum/character_save/character = user.client.prefs.active_character
+	var/slot_num = character.slot_number
+	var/species = character.species
+	appearance_resources_species = species
+
+	spawn(0)
+		if(QDELETED(src) || !user?.client?.prefs?.active_character)
+			appearance_resources_in_progress = FALSE
+			return
+		var/datum/character_save/current_character = user.client.prefs.active_character
+		if(!current_character || current_character.slot_number != slot_num)
+			appearance_resources_in_progress = FALSE
+			return
+		serve_appearance_resources(user, current_character)
+		appearance_resources_in_progress = FALSE
+		// Bust caches so icon availability reflects served_resources.
+		cached_hair_styles = null
+		cached_facial_hair_styles = null
+		SStgui.update_uis(src)
+		if(appearance_resources_dirty)
+			appearance_resources_dirty = FALSE
+			request_appearance_resources(user)
+	return TRUE
+
+/// Does the actual browse_rsc work for appearance option icons.
+/datum/character_creator/proc/serve_appearance_resources(mob/user, datum/character_save/character)
+	if(!user?.client || !character)
+		return FALSE
+	if(!served_resources)
+		served_resources = list()
+
+	var/datum/species/S = GLOB.all_species[character.species]
+
+	// Hair icons
+	if(S && (S.bodyflags & BALD))
+		var/bald_resource = "hair_bald.png"
+		if(!(bald_resource in served_resources))
+			user << browse_rsc(icon('icons/mob/human_face.dmi', "bald"), bald_resource)
+			served_resources[bald_resource] = TRUE
+	else
+		for(var/hair_style in GLOB.hair_styles_public_list)
+			var/datum/sprite_accessory/hair/H = GLOB.hair_styles_public_list[hair_style]
+			if(!H.species_allowed || (character.species in H.species_allowed))
+				var/hair_resource = "hair_[H.icon_state].png"
+				if(!(hair_resource in served_resources))
+					user << browse_rsc(icon(H.icon, "[H.icon_state]_s"), hair_resource)
+					served_resources[hair_resource] = TRUE
+			CHECK_TICK
+
+	// Facial hair icons
+	if(S && (S.bodyflags & SHAVED))
+		var/shaved_resource = "facial_hair_shaved.png"
+		if(!(shaved_resource in served_resources))
+			user << browse_rsc(icon('icons/mob/human_face.dmi', "bald"), shaved_resource)
+			served_resources[shaved_resource] = TRUE
+	else
+		for(var/facial_hair_style in GLOB.facial_hair_styles_list)
+			var/datum/sprite_accessory/facial_hair/F = GLOB.facial_hair_styles_list[facial_hair_style]
+			if(!F.species_allowed || (character.species in F.species_allowed))
+				var/facial_hair_resource = "facial_hair_[F.icon_state].png"
+				if(!(facial_hair_resource in served_resources))
+					user << browse_rsc(icon(F.icon, "[F.icon_state]_s"), facial_hair_resource)
+					served_resources[facial_hair_resource] = TRUE
+			CHECK_TICK
+
+	// Underwear/undershirt/socks icons
+	for(var/underwear_style in GLOB.underwear_list)
+		var/datum/sprite_accessory/underwear/UW = GLOB.underwear_list[underwear_style]
+		if(!(character.species in UW.species_allowed))
+			continue
+		if(character.body_type == MALE && UW.body_type == FEMALE)
+			continue
+		if(character.body_type == FEMALE && UW.body_type == MALE)
+			continue
+		var/underwear_resource = "underwear_[UW.icon_state].png"
+		if(!(underwear_resource in served_resources))
+			user << browse_rsc(icon(UW.icon, "uw_[UW.icon_state]_s"), underwear_resource)
+			served_resources[underwear_resource] = TRUE
+		CHECK_TICK
+
+	for(var/undershirt_style in GLOB.undershirt_list)
+		var/datum/sprite_accessory/undershirt/US = GLOB.undershirt_list[undershirt_style]
+		if(!(character.species in US.species_allowed))
+			continue
+		if(character.body_type == MALE && US.body_type == FEMALE)
+			continue
+		if(character.body_type == FEMALE && US.body_type == MALE)
+			continue
+		var/undershirt_resource = "undershirt_[US.icon_state].png"
+		if(!(undershirt_resource in served_resources))
+			user << browse_rsc(icon(US.icon, "us_[US.icon_state]_s"), undershirt_resource)
+			served_resources[undershirt_resource] = TRUE
+		CHECK_TICK
+
+	for(var/socks_style in GLOB.socks_list)
+		var/datum/sprite_accessory/socks/SK = GLOB.socks_list[socks_style]
+		if(!(character.species in SK.species_allowed))
+			continue
+		if(character.body_type == MALE && SK.body_type == FEMALE)
+			continue
+		if(character.body_type == FEMALE && SK.body_type == MALE)
+			continue
+		var/socks_resource = "socks_[SK.icon_state].png"
+		if(!(socks_resource in served_resources))
+			user << browse_rsc(icon(SK.icon, "sk_[SK.icon_state]_s"), socks_resource)
+			served_resources[socks_resource] = TRUE
+		CHECK_TICK
+
+	// Wing icons
+	if(S && (S.bodyflags & HAS_WING) && GLOB.body_accessory_by_species[character.species])
+		for(var/wing_name in GLOB.body_accessory_by_species[character.species])
+			var/datum/body_accessory/W = GLOB.body_accessory_by_species[character.species][wing_name]
+			if(!istype(W, /datum/body_accessory/wing))
+				continue
+			var/wing_resource = "wing_[W.icon_state].png"
+			if(!(wing_resource in served_resources))
+				user << browse_rsc(icon(W.icon, W.icon_state), wing_resource)
+				served_resources[wing_resource] = TRUE
+			CHECK_TICK
+
+	// Prosthetic icons
+	var/is_machine = (S && (S.bodyflags & ALL_RPARTS))
+	var/list/body_parts = list("l_arm", "r_arm", "l_hand", "r_hand", "l_leg", "r_leg", "l_foot", "r_foot")
+	if(is_machine)
+		body_parts += list("head", "chest")
+	for(var/part_name in body_parts)
+		for(var/company in GLOB.all_robolimbs)
+			var/datum/robolimb/R = GLOB.all_robolimbs[company]
+			if(!(part_name in R.parts) || R.unavailable_at_chargen)
+				continue
+			var/prosthetic_resource = "prosthetic_[company]_[part_name].png"
+			if(!(prosthetic_resource in served_resources))
+				user << browse_rsc(new /icon(R.icon, part_name), prosthetic_resource)
+				served_resources[prosthetic_resource] = TRUE
+			CHECK_TICK
+
+	// Head accessories
+	if(S && (S.bodyflags & HAS_HEAD_ACCESSORY) && GLOB.head_accessory_styles_list)
+		for(var/accessory_name in GLOB.head_accessory_styles_list)
+			var/datum/sprite_accessory/head_accessory/HA = GLOB.head_accessory_styles_list[accessory_name]
+			if(!(character.species in HA.species_allowed))
+				continue
+			var/accessory_resource = "head_accessory_[HA.icon_state].png"
+			if(!(accessory_resource in served_resources))
+				user << browse_rsc(icon(HA.icon, "[HA.icon_state]_s"), accessory_resource)
+				served_resources[accessory_resource] = TRUE
+			CHECK_TICK
+
+	// Markings (head/body)
+	if(GLOB.marking_styles_list)
+		for(var/marking_name in GLOB.marking_styles_list)
+			var/datum/sprite_accessory/MA = GLOB.marking_styles_list[marking_name]
+			if(istype(MA, /datum/sprite_accessory/body_markings/head))
+				var/head_resource = "head_marking_[MA.icon_state].png"
+				if(!(head_resource in served_resources))
+					user << browse_rsc(icon(MA.icon, MA.icon_state), head_resource)
+					served_resources[head_resource] = TRUE
+			else if(istype(MA, /datum/sprite_accessory/body_markings))
+				var/body_resource = "body_marking_[MA.icon_state].png"
+				if(!(body_resource in served_resources))
+					user << browse_rsc(icon(MA.icon, MA.icon_state), body_resource)
+					served_resources[body_resource] = TRUE
+			CHECK_TICK
+
+	// Body accessories (non-wings)
+	if(GLOB.body_accessory_by_species[character.species])
+		for(var/accessory_name in GLOB.body_accessory_by_species[character.species])
+			var/datum/body_accessory/BA = GLOB.body_accessory_by_species[character.species][accessory_name]
+			if(istype(BA, /datum/body_accessory/wing))
+				continue
+			var/body_accessory_resource = "body_accessory_[BA.icon_state].png"
+			if(!(body_accessory_resource in served_resources))
+				user << browse_rsc(icon(BA.icon, BA.icon_state), body_accessory_resource)
+				served_resources[body_accessory_resource] = TRUE
+			CHECK_TICK
+
+	return TRUE
 
 /datum/character_creator/ui_static_data(mob/user)
 	var/list/data = list()
@@ -971,16 +1186,11 @@
 	var/datum/species/S = GLOB.all_species[character.species]
 
 	if(S.bodyflags & BALD)
-		var/icon/bald_icon = icon('icons/mob/human_face.dmi', "bald")
 		var/bald_resource = "hair_bald.png"
-		if(!served_resources)
-			served_resources = list()
-		if(!(bald_resource in served_resources))
-			usr << browse_rsc(bald_icon, bald_resource)
-			served_resources[bald_resource] = TRUE
+		var/have_bald = served_resources && (bald_resource in served_resources)
 		available += list(list(
 			"name" = "Bald",
-			"icon" = bald_resource,
+			"icon" = have_bald ? bald_resource : null,
 			"icon_state" = ""
 		))
 		return available
@@ -988,34 +1198,22 @@
 	for(var/hair_style in GLOB.hair_styles_public_list)
 		var/datum/sprite_accessory/hair/H = GLOB.hair_styles_public_list[hair_style]
 		if(!H.species_allowed || (character.species in H.species_allowed))
-			// Generate individual sprite file for each hair style using _s suffix like character preview
-			var/icon/hair_icon = icon(H.icon, "[H.icon_state]_s")
-			// Use stable resource name for caching
+			// Stable resource name (served asynchronously)
 			var/hair_resource = "hair_[H.icon_state].png"
-			// Only serve if not already served
-			if(!served_resources)
-				served_resources = list()
-			if(!(hair_resource in served_resources))
-				usr << browse_rsc(hair_icon, hair_resource)
-				served_resources[hair_resource] = TRUE
+			var/have_hair = served_resources && (hair_resource in served_resources)
 
 			available += list(list(
 				"name" = hair_style,
-				"icon" = hair_resource,
+				"icon" = have_hair ? hair_resource : null,
 				"icon_state" = ""
 			))
 
 	if(!length(available))
-		var/icon/bald_icon = icon('icons/mob/human_face.dmi', "bald")
 		var/bald_resource = "hair_bald.png"
-		if(!served_resources)
-			served_resources = list()
-		if(!(bald_resource in served_resources))
-			usr << browse_rsc(bald_icon, bald_resource)
-			served_resources[bald_resource] = TRUE
+		var/have_bald = served_resources && (bald_resource in served_resources)
 		available += list(list(
 			"name" = "Bald",
-			"icon" = bald_resource,
+			"icon" = have_bald ? bald_resource : null,
 			"icon_state" = ""
 		))
 
@@ -1046,16 +1244,11 @@
 	var/datum/species/S = GLOB.all_species[character.species]
 
 	if(S.bodyflags & SHAVED)
-		var/icon/shaved_icon = icon('icons/mob/human_face.dmi', "bald")
 		var/shaved_resource = "facial_hair_shaved.png"
-		if(!served_resources)
-			served_resources = list()
-		if(!(shaved_resource in served_resources))
-			usr << browse_rsc(shaved_icon, shaved_resource)
-			served_resources[shaved_resource] = TRUE
+		var/have_shaved = served_resources && (shaved_resource in served_resources)
 		available += list(list(
 			"name" = "Shaved",
-			"icon" = shaved_resource,
+			"icon" = have_shaved ? shaved_resource : null,
 			"icon_state" = ""
 		))
 		return available
@@ -1063,34 +1256,22 @@
 	for(var/facial_hair_style in GLOB.facial_hair_styles_list)
 		var/datum/sprite_accessory/facial_hair/F = GLOB.facial_hair_styles_list[facial_hair_style]
 		if(!F.species_allowed || (character.species in F.species_allowed))
-			// Generate individual sprite file for each facial hair style using _s suffix like character preview
-			var/icon/facial_hair_icon = icon(F.icon, "[F.icon_state]_s")
-			// Use stable resource name for caching
+			// Stable resource name (served asynchronously)
 			var/facial_hair_resource = "facial_hair_[F.icon_state].png"
-			// Only serve if not already served
-			if(!served_resources)
-				served_resources = list()
-			if(!(facial_hair_resource in served_resources))
-				usr << browse_rsc(facial_hair_icon, facial_hair_resource)
-				served_resources[facial_hair_resource] = TRUE
+			var/have_facial = served_resources && (facial_hair_resource in served_resources)
 
 			available += list(list(
 				"name" = facial_hair_style,
-				"icon" = facial_hair_resource,
+				"icon" = have_facial ? facial_hair_resource : null,
 				"icon_state" = ""
 			))
 
 	if(!length(available))
-		var/icon/shaved_icon = icon('icons/mob/human_face.dmi', "bald")
 		var/shaved_resource = "facial_hair_shaved.png"
-		if(!served_resources)
-			served_resources = list()
-		if(!(shaved_resource in served_resources))
-			usr << browse_rsc(shaved_icon, shaved_resource)
-			served_resources[shaved_resource] = TRUE
+		var/have_shaved = served_resources && (shaved_resource in served_resources)
 		available += list(list(
 			"name" = "Shaved",
-			"icon" = shaved_resource,
+			"icon" = have_shaved ? shaved_resource : null,
 			"icon_state" = ""
 		))
 
@@ -1120,20 +1301,13 @@
 		if(character.body_type == FEMALE && U.body_type == MALE)
 			continue
 
-		// Generate individual sprite file using _s suffix
-		var/icon/underwear_icon = icon(U.icon, "uw_[U.icon_state]_s")
-		// Use stable resource name for caching
+		// Stable resource name (served asynchronously)
 		var/underwear_resource = "underwear_[U.icon_state].png"
-		// Only serve if not already served
-		if(!served_resources)
-			served_resources = list()
-		if(!(underwear_resource in served_resources))
-			usr << browse_rsc(underwear_icon, underwear_resource)
-			served_resources[underwear_resource] = TRUE
+		var/have_underwear = served_resources && (underwear_resource in served_resources)
 
 		available += list(list(
 			"name" = underwear_style,
-			"icon" = underwear_resource,
+			"icon" = have_underwear ? underwear_resource : null,
 			"icon_state" = ""
 		))
 	return available
@@ -1150,20 +1324,13 @@
 		if(character.body_type == FEMALE && U.body_type == MALE)
 			continue
 
-		// Generate individual sprite file using _s suffix
-		var/icon/undershirt_icon = icon(U.icon, "us_[U.icon_state]_s")
-		// Use stable resource name for caching
+		// Stable resource name (served asynchronously)
 		var/undershirt_resource = "undershirt_[U.icon_state].png"
-		// Only serve if not already served
-		if(!served_resources)
-			served_resources = list()
-		if(!(undershirt_resource in served_resources))
-			usr << browse_rsc(undershirt_icon, undershirt_resource)
-			served_resources[undershirt_resource] = TRUE
+		var/have_undershirt = served_resources && (undershirt_resource in served_resources)
 
 		available += list(list(
 			"name" = undershirt_style,
-			"icon" = undershirt_resource,
+			"icon" = have_undershirt ? undershirt_resource : null,
 			"icon_state" = ""
 		))
 	return available
@@ -1180,20 +1347,13 @@
 		if(character.body_type == FEMALE && U.body_type == MALE)
 			continue
 
-		// Generate individual sprite file using _s suffix like character preview
-		var/icon/socks_icon = icon(U.icon, "sk_[U.icon_state]_s")
-		// Use stable resource name for caching
+		// Stable resource name (served asynchronously)
 		var/socks_resource = "socks_[U.icon_state].png"
-		// Only serve if not already served
-		if(!served_resources)
-			served_resources = list()
-		if(!(socks_resource in served_resources))
-			usr << browse_rsc(socks_icon, socks_resource)
-			served_resources[socks_resource] = TRUE
+		var/have_socks = served_resources && (socks_resource in served_resources)
 
 		available += list(list(
 			"name" = socks_style,
-			"icon" = socks_resource,
+			"icon" = have_socks ? socks_resource : null,
 			"icon_state" = ""
 		))
 	return available
@@ -1221,19 +1381,13 @@
 				continue
 
 			// Generate individual sprite file for each wing style
-			var/icon/wing_icon = icon(W.icon, W.icon_state)
-			// Use stable resource name for caching
+			// Stable resource name (served asynchronously)
 			var/wing_resource = "wing_[W.icon_state].png"
-			// Only serve if not already served
-			if(!served_resources)
-				served_resources = list()
-			if(!(wing_resource in served_resources))
-				usr << browse_rsc(wing_icon, wing_resource)
-				served_resources[wing_resource] = TRUE
+			var/have_wing = served_resources && (wing_resource in served_resources)
 
 			available += list(list(
 				"name" = wing_name,
-				"icon" = wing_resource,
+				"icon" = have_wing ? wing_resource : null,
 				"icon_state" = W.icon_state
 			))
 
@@ -1273,7 +1427,7 @@
 			part_options += list(list(
 				"name" = "Morpheus Cyberkinetics",
 				"value" = "Morpheus Cyberkinetics",
-				"icon" = "prosthetic_Morpheus Cyberkinetics_[part_name].png",
+				"icon" = null,
 				"description" = "Standard Morpheus Cyberkinetics prosthetic"
 			))
 		else
@@ -1334,19 +1488,12 @@
 				continue
 
 			var/prosthetic_resource = "prosthetic_[company]_[part_name].png"
-
-			// Serve prosthetic icon if not already served
-			if(!served_resources)
-				served_resources = list()
-			if(!(prosthetic_resource in served_resources))
-				var/icon/prosthetic_icon = new /icon(R.icon, part_name)
-				usr << browse_rsc(prosthetic_icon, prosthetic_resource)
-				served_resources[prosthetic_resource] = world.time
+			var/have_prosthetic = served_resources && (prosthetic_resource in served_resources)
 
 			part_options += list(list(
 				"name" = company,
 				"value" = company,
-				"icon" = prosthetic_resource,
+				"icon" = have_prosthetic ? prosthetic_resource : null,
 				"description" = R.desc
 			))
 
@@ -1375,17 +1522,12 @@
 			continue
 
 		// Generate sprite file for each accessory style
-		var/icon/accessory_icon = icon(HA.icon, "[HA.icon_state]_s")
 		var/accessory_resource = "head_accessory_[HA.icon_state].png"
-		if(!served_resources)
-			served_resources = list()
-		if(!(accessory_resource in served_resources))
-			usr << browse_rsc(accessory_icon, accessory_resource)
-			served_resources[accessory_resource] = TRUE
+		var/have_accessory = served_resources && (accessory_resource in served_resources)
 
 		available += list(list(
 			"name" = accessory_name,
-			"icon" = accessory_resource,
+			"icon" = have_accessory ? accessory_resource : null,
 			"icon_state" = HA.icon_state
 		))
 
@@ -1452,18 +1594,12 @@
 		if(!(character.species in BM.species_allowed))
 			continue
 
-		// Generate sprite file for each marking style
-		var/icon/marking_icon = icon(BM.icon, BM.icon_state)
 		var/marking_resource = "body_marking_[BM.icon_state].png"
-		if(!served_resources)
-			served_resources = list()
-		if(!(marking_resource in served_resources))
-			usr << browse_rsc(marking_icon, marking_resource)
-			served_resources[marking_resource] = TRUE
+		var/have_marking = served_resources && (marking_resource in served_resources)
 
 		available += list(list(
 			"name" = marking_name,
-			"icon" = marking_resource,
+			"icon" = have_marking ? marking_resource : null,
 			"icon_state" = BM.icon_state
 		))
 
@@ -1491,18 +1627,12 @@
 			if(istype(BA, /datum/body_accessory/wing))
 				continue // Skip wings in body accessory list
 
-			// Generate sprite file for each accessory
-			var/icon/accessory_icon = icon(BA.icon, BA.icon_state)
 			var/accessory_resource = "body_accessory_[BA.icon_state].png"
-			if(!served_resources)
-				served_resources = list()
-			if(!(accessory_resource in served_resources))
-				usr << browse_rsc(accessory_icon, accessory_resource)
-				served_resources[accessory_resource] = TRUE
+			var/have_accessory = served_resources && (accessory_resource in served_resources)
 
 			available += list(list(
 				"name" = accessory_name,
-				"icon" = accessory_resource,
+				"icon" = have_accessory ? accessory_resource : null,
 				"icon_state" = BA.icon_state
 			))
 
@@ -1510,11 +1640,10 @@
 
 // Helper function to refresh character preview (optimized to only run when appearance changes)
 /datum/character_creator/proc/refresh_preview(mob/user)
-	// Refresh main preview (this automatically updates the headshot too)
-	refresh_character_preview(user)
-	// Also refresh species character preview for species selection tab
-	if(user.client?.prefs?.active_character)
-		generate_species_character_preview(user, user.client.prefs.active_character)
+	// Non-blocking: request fresh previews/resources; UI shows placeholders until ready.
+	request_character_preview(user)
+	request_species_preview(user)
+	request_appearance_resources(user)
 	return TRUE
 
 /datum/character_creator/proc/get_available_head_accessory_styles_with_icons(datum/character_save/character)
@@ -1533,17 +1662,12 @@
 			var/datum/sprite_accessory/HA = GLOB.head_accessory_styles_list[accessory_name]
 
 			// Generate sprite file for each accessory
-			var/icon/accessory_icon = icon(HA.icon, HA.icon_state)
 			var/accessory_resource = "head_accessory_[HA.icon_state].png"
-			if(!served_resources)
-				served_resources = list()
-			if(!(accessory_resource in served_resources))
-				usr << browse_rsc(accessory_icon, accessory_resource)
-				served_resources[accessory_resource] = TRUE
+			var/have_accessory = served_resources && (accessory_resource in served_resources)
 
 			available += list(list(
 				"name" = accessory_name,
-				"icon" = accessory_resource,
+				"icon" = have_accessory ? accessory_resource : null,
 				"icon_state" = HA.icon_state
 			))
 
@@ -1566,18 +1690,12 @@
 			if(!istype(MA, /datum/sprite_accessory/body_markings/head))
 				continue
 
-			// Generate sprite file for each marking
-			var/icon/marking_icon = icon(MA.icon, MA.icon_state)
 			var/marking_resource = "head_marking_[MA.icon_state].png"
-			if(!served_resources)
-				served_resources = list()
-			if(!(marking_resource in served_resources))
-				usr << browse_rsc(marking_icon, marking_resource)
-				served_resources[marking_resource] = TRUE
+			var/have_marking = served_resources && (marking_resource in served_resources)
 
 			available += list(list(
 				"name" = marking_name,
-				"icon" = marking_resource,
+				"icon" = have_marking ? marking_resource : null,
 				"icon_state" = MA.icon_state
 			))
 
@@ -1600,18 +1718,12 @@
 			if(!istype(MA, /datum/sprite_accessory/body_markings))
 				continue
 
-			// Generate sprite file for each marking
-			var/icon/marking_icon = icon(MA.icon, MA.icon_state)
 			var/marking_resource = "body_marking_[MA.icon_state].png"
-			if(!served_resources)
-				served_resources = list()
-			if(!(marking_resource in served_resources))
-				usr << browse_rsc(marking_icon, marking_resource)
-				served_resources[marking_resource] = TRUE
+			var/have_marking = served_resources && (marking_resource in served_resources)
 
 			available += list(list(
 				"name" = marking_name,
-				"icon" = marking_resource,
+				"icon" = have_marking ? marking_resource : null,
 				"icon_state" = MA.icon_state
 			))
 
@@ -1634,18 +1746,12 @@
 			if(istype(BA, /datum/body_accessory/wing))
 				continue // Skip wings in body accessory list
 
-			// Generate sprite file for each accessory
-			var/icon/accessory_icon = icon(BA.icon, BA.icon_state)
 			var/accessory_resource = "body_accessory_[BA.icon_state].png"
-			if(!served_resources)
-				served_resources = list()
-			if(!(accessory_resource in served_resources))
-				usr << browse_rsc(accessory_icon, accessory_resource)
-				served_resources[accessory_resource] = TRUE
+			var/have_accessory = served_resources && (accessory_resource in served_resources)
 
 			available += list(list(
 				"name" = accessory_name,
-				"icon" = accessory_resource,
+				"icon" = have_accessory ? accessory_resource : null,
 				"icon_state" = BA.icon_state
 			))
 

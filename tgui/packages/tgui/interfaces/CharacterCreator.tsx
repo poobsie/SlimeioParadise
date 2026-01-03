@@ -20,9 +20,8 @@ import {
 } from 'tgui-core/components';
 import { createSearch } from 'tgui-core/string';
 
-import { useBackend } from '../backend';
+import { useBackend, useLocalState } from '../backend';
 import { Window } from '../layouts';
-import { BasicInformation } from './CharacterCreator/basic_information';
 import { CharacterPreview } from './CharacterCreator/character_preview';
 import { CharacterSelection } from './CharacterCreator/character_selection';
 import { QuirksTab } from './CharacterCreator/quirks';
@@ -311,6 +310,111 @@ export const CharacterCreator = (props) => {
   );
 };
 
+// Character basic info component (left panel)
+const CharacterBasicInfo = ({ real_name, age, gender, available_genders, act }) => {
+  return (
+    <Box height="140px" p={1}>
+      <Stack vertical fill>
+        {/* Name Field */}
+        <Stack.Item>
+          <Stack align="center">
+            <Stack.Item basis="60px">
+              <Box fontSize="12px" color="#ccc" textAlign="right" mr={1}>
+                Name:
+              </Box>
+            </Stack.Item>
+            <Stack.Item grow>
+              <Input
+                placeholder="Enter name..."
+                value={real_name}
+                width="100%"
+                onChange={(value) => act('set_name', { name: value })}
+              />
+            </Stack.Item>
+            <Stack.Item>
+              <Button icon="dice" tooltip="Random Name" compact onClick={() => act('random_name')} />
+            </Stack.Item>
+          </Stack>
+        </Stack.Item>
+
+        {/* Age Field */}
+        <Stack.Item mt={1}>
+          <Stack align="center">
+            <Stack.Item basis="60px">
+              <Box fontSize="12px" color="#ccc" textAlign="right" mr={1}>
+                Age:
+              </Box>
+            </Stack.Item>
+            <Stack.Item>
+              <Input
+                placeholder="Age"
+                value={age.toString()}
+                width="60px"
+                textAlign="center"
+                onChange={(value) => act('set_age', { age: parseInt(value) || 18 })}
+              />
+            </Stack.Item>
+          </Stack>
+        </Stack.Item>
+
+        {/* Gender Buttons */}
+        <Stack.Item mt={1}>
+          <Stack align="center">
+            <Stack.Item basis="60px">
+              <Box fontSize="12px" color="#ccc" textAlign="right" mr={1}>
+                Gender:
+              </Box>
+            </Stack.Item>
+            <Stack.Item grow>
+              <Stack>
+                {available_genders.map((genderOption) => (
+                  <Stack.Item key={genderOption}>
+                    <Button
+                      selected={gender === genderOption}
+                      onClick={() => act('set_gender', { gender: genderOption })}
+                      mr={0.5}
+                    >
+                      {genderOption}
+                    </Button>
+                  </Stack.Item>
+                ))}
+              </Stack>
+            </Stack.Item>
+          </Stack>
+        </Stack.Item>
+      </Stack>
+    </Box>
+  );
+};
+
+// Preview options component (right panel)
+const CharacterPreviewOptions = () => {
+  const [showLoadout, setShowLoadout] = useLocalState('char_preview_show_loadout', false);
+
+  return (
+    <Box height="140px" p={1}>
+      <Stack vertical fill>
+        <Stack.Item>
+          <Box fontSize="13px" bold mb={1}>
+            Preview Options
+          </Box>
+        </Stack.Item>
+        <Stack.Item>
+          <Button.Checkbox checked={showLoadout} onClick={() => setShowLoadout(!showLoadout)}>
+            Show Loadout Items
+          </Button.Checkbox>
+        </Stack.Item>
+        <Stack.Item>
+          <Box fontSize="11px" color="#999" mt={1} style={{ lineHeight: '1.3' }}>
+            When enabled, your equipped loadout items will be shown on the character preview (clothing, held items,
+            etc.)
+          </Box>
+        </Stack.Item>
+      </Stack>
+    </Box>
+  );
+};
+
 const AppearanceTabComponent = (props) => {
   const { act, data } = useBackend<CharacterData>();
   const {
@@ -405,33 +509,26 @@ const AppearanceTabComponent = (props) => {
 
   return (
     <Stack fill vertical>
-      {/* Top row: Three column layout */}
+      {/* Top row: Three column layout - Left (Info), Center (Preview), Right (Options) */}
       <Stack.Item>
         <Stack fill>
-          {/* Column 1: Character preview - front facing and side facing */}
-          <Stack.Item>
+          {/* Left Column: Name, Age, Gender */}
+          <Stack.Item basis="250px">
+            <CharacterBasicInfo
+              real_name={real_name}
+              age={age}
+              gender={gender}
+              available_genders={available_genders}
+              act={act}
+            />
+          </Stack.Item>
+          {/* Center Column: Character preview */}
+          <Stack.Item grow>
             <CharacterPreview has_preview={has_preview} preview_timestamp={preview_timestamp} />
           </Stack.Item>
-          {/* Column 2: Basic information */}
-          <Stack.Item basis="200px" ml={2}>
-            {basic_information && <BasicInformation data={basic_information} />}
-          </Stack.Item>
-          {/* Column 3: Available for future content */}
-          <Stack.Item grow ml={2}>
-            <Box
-              style={{
-                height: '140px',
-                border: '1px dashed #444',
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#666',
-                fontStyle: 'italic',
-              }}
-            >
-              Available for additional content
-            </Box>
+          {/* Right Column: Preview Options */}
+          <Stack.Item basis="250px" ml={2}>
+            <CharacterPreviewOptions />
           </Stack.Item>
         </Stack>
       </Stack.Item>
@@ -738,20 +835,37 @@ const HairSubTab = (props) => {
                         pointerEvents: 'none',
                       }}
                     >
-                      <img
-                        src={hair_style.icon}
-                        alt={hair_style.name}
-                        style={{
-                          width: '128px',
-                          height: '128px',
-                          imageRendering: 'pixelated',
-                          marginTop: '0px',
-                          marginLeft: '4px',
-                        }}
-                        onError={(e) => {
-                          console.log(`Failed to load hair style image: ${hair_style.icon}`);
-                        }}
-                      />
+                      {hair_style.icon ? (
+                        <img
+                          src={hair_style.icon}
+                          alt={hair_style.name}
+                          style={{
+                            width: '128px',
+                            height: '128px',
+                            imageRendering: 'pixelated',
+                            marginTop: '0px',
+                            marginLeft: '4px',
+                          }}
+                          onError={(e) => {
+                            console.log(`Failed to load hair style image: ${hair_style.icon}`);
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '64px',
+                            height: '64px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            color: '#999',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          ...
+                        </div>
+                      )}
                     </div>
                     <div
                       style={{
@@ -1088,20 +1202,37 @@ const FacialHairSubTab = (props) => {
                         pointerEvents: 'none',
                       }}
                     >
-                      <img
-                        src={hair_style.icon}
-                        alt={hair_style.name}
-                        style={{
-                          width: '128px',
-                          height: '128px',
-                          imageRendering: 'pixelated',
-                          marginTop: '-16px',
-                          marginLeft: '4px',
-                        }}
-                        onError={(e) => {
-                          console.log(`Failed to load facial hair style image: ${hair_style.icon}`);
-                        }}
-                      />
+                      {hair_style.icon ? (
+                        <img
+                          src={hair_style.icon}
+                          alt={hair_style.name}
+                          style={{
+                            width: '128px',
+                            height: '128px',
+                            imageRendering: 'pixelated',
+                            marginTop: '-16px',
+                            marginLeft: '4px',
+                          }}
+                          onError={(e) => {
+                            console.log(`Failed to load facial hair style image: ${hair_style.icon}`);
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '64px',
+                            height: '64px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            color: '#999',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          ...
+                        </div>
+                      )}
                     </div>
                     <div
                       style={{

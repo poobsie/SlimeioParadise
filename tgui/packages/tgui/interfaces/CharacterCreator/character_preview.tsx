@@ -3,8 +3,8 @@
  * Backend sibling: code/modules/client/preference/character_creator/character_preview.dm
  */
 
+import { useEffect, useState } from 'react';
 import { Box, Stack } from 'tgui-core/components';
-import { useState, useEffect, useRef } from 'react';
 
 interface CharacterPreviewProps {
   has_preview: boolean;
@@ -16,25 +16,32 @@ const DoubleBufferedImage = ({ src, alt, style }: { src: string; alt: string; st
   const [currentSrc, setCurrentSrc] = useState(src);
   const [previousSrc, setPreviousSrc] = useState<string | null>(null);
   const [showPrevious, setShowPrevious] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
-    if (src !== currentSrc) {
-      setPreviousSrc(currentSrc);
-      setShowPrevious(true);
+    // Always preload the image, even on initial render
+    setImageLoaded(false);
 
-      // Preload new image
-      const img = new Image();
-      img.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      if (src !== currentSrc) {
+        setPreviousSrc(currentSrc);
+        setShowPrevious(true);
         setCurrentSrc(src);
         // Hide previous image after new one loads
         setTimeout(() => {
           setShowPrevious(false);
           setPreviousSrc(null);
-        }, 50); // Brief overlap to prevent flickering
-      };
-      img.src = src;
-    }
-  }, [src, currentSrc]);
+        }, 50);
+      }
+      setImageLoaded(true);
+    };
+    img.onerror = () => {
+      // Image failed to load, don't show it
+      setImageLoaded(false);
+    };
+    img.src = src;
+  }, [src]);
 
   return (
     <div style={{ position: 'relative', ...style }}>
@@ -53,16 +60,33 @@ const DoubleBufferedImage = ({ src, alt, style }: { src: string; alt: string; st
           }}
         />
       )}
-      {/* Current image */}
-      <img
-        src={currentSrc}
-        alt={alt}
-        style={{
-          width: '100%',
-          height: '100%',
-          imageRendering: 'pixelated',
-        }}
-      />
+      {/* Current image - only show if loaded */}
+      {imageLoaded && (
+        <img
+          src={currentSrc}
+          alt={alt}
+          style={{
+            width: '100%',
+            height: '100%',
+            imageRendering: 'pixelated',
+          }}
+        />
+      )}
+      {/* Loading placeholder */}
+      {!imageLoaded && !showPrevious && (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'rgba(255, 255, 255, 0.5)',
+          }}
+        >
+          ...
+        </div>
+      )}
     </div>
   );
 };
@@ -102,7 +126,7 @@ export const CharacterPreview = (props: CharacterPreviewProps) => {
           </Stack>
         ) : (
           <Box textAlign="center" color="label" p={2}>
-            Preview will be available once the server finishes loading...
+            Loading...
           </Box>
         )}
       </Box>

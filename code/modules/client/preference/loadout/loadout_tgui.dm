@@ -38,6 +38,8 @@ GLOBAL_LIST_EMPTY(gear_tgui_info)
 			var/datum/gear/gear = GLOB.gear_datums[text2path(params["gear"])]
 			if(gear && ("[gear]" in active_character.loadout_gear))
 				active_character.loadout_gear -= "[gear]"
+				// Invalidate character creator preview if it exists
+				invalidate_character_creator_preview(user)
 				return TRUE
 
 			if(gear.donator_tier && user.client.donator_level < gear.donator_tier)
@@ -45,6 +47,8 @@ GLOBAL_LIST_EMPTY(gear_tgui_info)
 				return FALSE
 
 			user.client.prefs.build_loadout(gear)
+			// Invalidate character creator preview if it exists
+			invalidate_character_creator_preview(user)
 			return TRUE
 
 		if("set_tweak")
@@ -58,4 +62,26 @@ GLOBAL_LIST_EMPTY(gear_tgui_info)
 
 		if("clear_loadout")
 			active_character.loadout_gear.Cut()
+			// Invalidate character creator preview if it exists
+			invalidate_character_creator_preview(user)
 			return TRUE
+
+/// Helper proc to invalidate character creator preview when loadout changes
+/datum/ui_module/loadout/proc/invalidate_character_creator_preview(mob/user)
+	if(!user?.client?.tgui_windows)
+		return
+
+	// Find the character creator UI in open windows
+	for(var/window_id in user.client.tgui_windows)
+		var/datum/tgui_window/window = user.client.tgui_windows[window_id]
+		if(!window.locked_by)
+			continue
+		var/datum/tgui/ui = window.locked_by
+		if(!istype(ui.src_object, /datum/character_creator))
+			continue
+
+		var/datum/character_creator/cc = ui.src_object
+		if(cc.show_loadout_preview)
+			cc.character_preview_timestamp = 0
+			cc.refresh_preview(user)
+		return

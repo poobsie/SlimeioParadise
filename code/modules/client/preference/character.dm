@@ -879,7 +879,7 @@
 	if(Y)\
 		I.Shift(NORTH, Y);\
 
-/datum/character_save/proc/update_preview_icon(for_observer=0)		//seriously. This is horrendous.
+/datum/character_save/proc/update_preview_icon(for_observer=0, include_loadout_items=FALSE)		//seriously. This is horrendous.
 	qdel(preview_icon_front)
 	qdel(preview_icon_side)
 	qdel(preview_icon)
@@ -1217,7 +1217,11 @@
 				preview_icon.Blend(underlay, ICON_UNDERLAY)
 
 			ICON_SHIFT_XY(temp, offset_x, offset_y)
-			preview_icon.Blend(temp, ICON_OVERLAY)
+			// If the tail should be behind the body (vox, etc), use UNDERLAY, otherwise use OVERLAY
+			if(current_species.bodyflags & TAIL_OVERLAPPED)
+				preview_icon.Blend(temp, ICON_UNDERLAY)
+			else
+				preview_icon.Blend(temp, ICON_OVERLAY)
 
 	//Markings
 	if(current_species && ((current_species.bodyflags & HAS_HEAD_MARKINGS) || (current_species.bodyflags & HAS_BODY_MARKINGS)))
@@ -1906,6 +1910,35 @@
 	qdel(undershirt_s)
 	qdel(socks_s)
 	qdel(clothes_s)
+
+	if(include_loadout_items && length(loadout_gear))
+		qdel(preview_icon_front)
+		qdel(preview_icon_side)
+		qdel(preview_icon)
+		preview_icon_front = null
+		preview_icon_side = null
+		preview_icon = null
+
+		var/mob/living/carbon/human/fake/H = new
+		copy_to(H)
+
+		for(var/gear in loadout_gear)
+			var/datum/gear/G = GLOB.gear_datums[text2path(gear) || gear]
+			if(!G)
+				continue
+
+			var/list/metadata = get_gear_metadata(G)
+			var/obj/item/item = G.spawn_item(H, metadata)
+			if(!item)
+				continue
+
+			if(G.slot)
+				H.equip_to_slot_or_del(item, G.slot, TRUE)
+
+		H.update_icons()
+		preview_icon_front = getFlatIcon(H, defdir = SOUTH, no_anim = TRUE)
+		preview_icon_side = getFlatIcon(H, defdir = WEST, no_anim = TRUE)
+		qdel(H)
 
 #undef ICON_SHIFT_XY
 
