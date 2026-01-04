@@ -1669,7 +1669,7 @@ const ClothingSubTab = (props) => {
       <Stack fill>
         {/* Left panel - category selection (underwear, undershirt, socks, backpack) */}
         <Stack.Item basis="200px">
-          <Section title="Category">
+          <Section>
             <Stack vertical>
               <Stack.Item>
                 <Button
@@ -1713,17 +1713,7 @@ const ClothingSubTab = (props) => {
 
         {/* Right panel - item selection */}
         <Stack.Item grow>
-          <Section
-            title={
-              selectedClothingCategory === ClothingCategory.Underwear
-                ? 'Underwear'
-                : selectedClothingCategory === ClothingCategory.Undershirt
-                  ? 'Undershirt'
-                  : selectedClothingCategory === ClothingCategory.Socks
-                    ? 'Socks'
-                    : 'Backpack Type'
-            }
-          >
+          <Section>
             {!clothingData.items || !Array.isArray(clothingData.items) ? (
               <Box>Loading options...</Box>
             ) : isBackpackCategory ? (

@@ -7,5 +7,6 @@
 export { Countdown } from './Countdown';
 export { Grid } from './Grid';
 export { Interactive } from './Interactive';
+export { ItemGrid } from './ItemGrid';
 export { NanoMap } from './NanoMap';
 export { Pointer } from './Pointer';

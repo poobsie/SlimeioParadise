@@ -2018,6 +2018,34 @@
 
 	return 0
 
+/datum/character_save/proc/GetJobPriority(datum/job/job)
+	if(!job)
+		return 0
+
+	if(job.department_flag == JOBCAT_SUPPORT)
+		if(job_support_high & job.flag)
+			return 3 // High
+		if(job_support_med & job.flag)
+			return 2 // Medium
+		if(job_support_low & job.flag)
+			return 1 // Low
+	else if(job.department_flag == JOBCAT_ENGSEC)
+		if(job_engsec_high & job.flag)
+			return 3 // High
+		if(job_engsec_med & job.flag)
+			return 2 // Medium
+		if(job_engsec_low & job.flag)
+			return 1 // Low
+	else if(job.department_flag == JOBCAT_MEDSCI)
+		if(job_medsci_high & job.flag)
+			return 3 // High
+		if(job_medsci_med & job.flag)
+			return 2 // Medium
+		if(job_medsci_low & job.flag)
+			return 1 // Low
+
+	return 0 // Never
+
 /datum/character_save/proc/ShowDisabilityState(mob/user, flag, label)
 	return "<li><b>[label]:</b> <a href='byond://?_src_=prefs;task=input;preference=disabilities;disability=[flag]'>[disabilities & flag ? "Yes" : "No"]</a></li>"
 

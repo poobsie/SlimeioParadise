@@ -198,6 +198,9 @@
 	data["max_gear_slots"] = user?.client?.prefs?.max_gear_slots
 	data["user_tier"] = user?.client?.donator_level
 
+	// Job preferences
+	data["job_preferences"] = get_job_preferences_data(user)
+
 	/*
 	// Antag preferences
 	var/list/antag_prefs = list()
@@ -1152,6 +1155,10 @@
 			return TRUE
 
 		if("clear_loadout")
+		// Job preferences actions
+		if("job_preferences_action")
+			return handle_job_preferences_action(params["job_action"], params, user)
+
 			character.loadout_gear.Cut()
 			return TRUE
 

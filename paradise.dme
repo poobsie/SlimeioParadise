@@ -1934,6 +1934,7 @@
 #include "code\modules\client\preference\character_creator\basic_information.dm"
 #include "code\modules\client\preference\character_creator\character_preview.dm"
 #include "code\modules\client\preference\character_creator\character_selection.dm"
+#include "code\modules\client\preference\character_creator\job_preferences.dm"
 #include "code\modules\client\preference\character_creator\species_selection.dm"
 #include "code\modules\client\preference\loadout\gear_tweaks.dm"
 #include "code\modules\client\preference\loadout\loadout.dm"

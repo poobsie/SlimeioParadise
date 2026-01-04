@@ -15,6 +15,7 @@ import {
 import { createSearch } from 'tgui-core/string';
 
 import { useBackend } from '../backend';
+import { ItemGrid, ItemGridItem } from '../components/ItemGrid';
 import { Window } from '../layouts';
 
 type Data = {
@@ -176,7 +177,7 @@ const LoadoutGears = (props) => {
         </Stack>
       }
     >
-      {contents.map(({ key, gear }) => {
+      <ItemGrid items={contents.map(({ key, gear }) => {
         const maxTextLength = 12;
         const selected = Object.keys(data.selected_gears).includes(key);
         const costText = gear.cost === 1 ? `${gear.cost} Point` : `${gear.cost} Points`;
@@ -236,25 +237,20 @@ const LoadoutGears = (props) => {
           </Box>
         );
 
-        return (
-          <ImageButton
-            key={key}
-            m={0.5}
-            imageSize={84}
-            dmIcon={gear.icon}
-            dmIconState={gear.icon_state}
-            tooltip={(gear.name.length > maxTextLength || gear.gear_tier > 0) && tooltipText}
-            tooltipPosition={'bottom'}
-            selected={selected}
-            disabled={gear.gear_tier > user_tier || (gear_slots + gear.cost > max_gear_slots && !selected)}
-            buttons={tooltipsInfo}
-            buttonsAlt={textInfo}
-            onClick={() => act('toggle_gear', { gear: key })}
-          >
-            {gear.name}
-          </ImageButton>
-        );
-      })}
+        return {
+          key,
+          name: gear.name,
+          icon: gear.icon,
+          iconState: gear.icon_state,
+          selected,
+          disabled: gear.gear_tier > user_tier || (gear_slots + gear.cost > max_gear_slots && !selected),
+          tooltip: (gear.name.length > maxTextLength || gear.gear_tier > 0) && tooltipText,
+          tooltipPosition: 'bottom',
+          buttons: tooltipsInfo,
+          bottomLabel: textInfo,
+          onClick: () => act('toggle_gear', { gear: key }),
+        } as ItemGridItem;
+      })} />
     </Section>
   );
 };
