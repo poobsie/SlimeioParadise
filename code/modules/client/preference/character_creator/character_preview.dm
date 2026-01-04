@@ -6,7 +6,8 @@
 	if(!user.client?.prefs?.active_character)
 		return list()
 
-	request_character_preview(user)
+	// Don't automatically request preview here - only return current state
+	// Preview requests should only come from refresh_preview() or initial setup
 
 	return list(
 		"has_preview" = (character_preview_timestamp > 0),

@@ -1641,6 +1641,9 @@
 // Helper function to refresh character preview (optimized to only run when appearance changes)
 /datum/character_creator/proc/refresh_preview(mob/user)
 	// Non-blocking: request fresh previews/resources; UI shows placeholders until ready.
+	// Invalidate cached previews to force regeneration
+	character_preview_timestamp = 0
+	species_preview_timestamp = 0
 	request_character_preview(user)
 	request_species_preview(user)
 	request_appearance_resources(user)
